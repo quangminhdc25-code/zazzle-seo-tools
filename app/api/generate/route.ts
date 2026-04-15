@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// XIN VERCEL GIA HẠN THỜI GIAN CHẠY LÊN 60 GIÂY (Tránh lỗi Timeout khi tạo nhiều bộ)
-export const maxDuration = 60;
+export const maxDuration = 60; // Giữ nguyên gia hạn thời gian
 
 export async function POST(request: Request) {
   try {
@@ -14,34 +13,23 @@ export async function POST(request: Request) {
     - Title Amazon: ${title}
     - Description Amazon: ${description}
 
-    NHIỆM VỤ: Lột xác dữ liệu lộn xộn trên thành CHÍNH XÁC ${qty} BỘ NỘI DUNG HOÀN TOÀN KHÁC NHAU (về từ vựng, cấu trúc câu, chiến lược từ khóa) nhưng đều phải chuẩn SEO 100/100 cho Zazzle.
-    Tuân thủ NGHIÊM NGẶT các quy tắc sau cho từng bộ:
+    NHIỆM VỤ QUAN TRỌNG: Bạn phải tạo ra CHÍNH XÁC ${qty} BỘ (VARIANTS) nội dung khác nhau hoàn toàn. Không được gộp, không được làm thiếu.
 
-    1. TITLE:
-    - Lọc bỏ rác nhồi nhét.
-    - Độ dài: 50 - 70 ký tự.
-    - Cấu trúc: [Main Keyword] + [Tính từ] + [Loại sản phẩm]. (Main keyword đặt lên đầu). Viết Title Case.
+    Mỗi bộ (variant) phải tuân thủ:
+    1. TITLE: 50 - 70 ký tự, Main Keyword lên đầu, viết Title Case.
+    2. DESCRIPTION: 150 ký tự đầu chuẩn SEO Google, có storytelling cho đối tượng cụ thể và dịp lễ, kết thúc bằng CTA.
+    3. TAGS: Đúng 10 tags chiến lược, phân cách bằng dấu phẩy, viết thường, không hashtag.
 
-    2. DESCRIPTION:
-    - ~150 ký tự đầu làm SEO Mồi chứa Main Keyword thật tự nhiên.
-    - Phân tích đối tượng tặng quà và dịp lễ, đưa trực tiếp vào văn bản.
-    - Chốt bằng Call To Action.
-
-    3. TAGS:
-    - CHÍNH XÁC 10 tags phân cách bằng dấu phẩy. Viết thường, KHÔNG có hashtag.
-    - Phải có ít nhất 1 tag Primary, 2 tags Long-tail, 2 tags Audience (gift for...), 1 tag Buyer Intent, 1 tag Occasion.
-
-    ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:
-    Chỉ trả về ĐÚNG 1 cấu trúc JSON chứa mảng 'variants' như sau, tuyệt đối không có markdown hay bất kỳ văn bản nào khác:
+    ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (JSON):
+    Trả về duy nhất 1 object JSON có mảng 'variants' chứa đúng ${qty} phần tử bên trong. 
+    Ví dụ nếu quantity là 2, bạn phải trả về:
     {
       "variants": [
-        {
-          "newTitle": "...",
-          "newDescription": "...",
-          "newTags": "..."
-        }
+        { "newTitle": "Bộ 1...", "newDescription": "Mô tả 1...", "newTags": "tag, bộ, 1..." },
+        { "newTitle": "Bộ 2...", "newDescription": "Mô tả 2...", "newTags": "tag, bộ, 2..." }
       ]
-    }`;
+    }
+    Hãy làm đủ ${qty} bộ như cấu trúc trên.`;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -52,16 +40,15 @@ export async function POST(request: Request) {
         "X-Title": "Zazzle SEO Professional Tool"
       },
       body: JSON.stringify({
-        "model": "openrouter/free",
+        "model": "openrouter/free", // Hệ thống tự chọn model miễn phí tốt nhất
         "messages": [{ "role": "user", "content": prompt }],
-        "temperature": 0.7 
+        "temperature": 0.8 // Tăng độ sáng tạo để các bộ không bị trùng lặp nhau
       })
     });
 
     const data = await response.json();
     
     if (!data.choices || !data.choices[0]) {
-        console.error("LỖI TỪ OPENROUTER:", data);
         return NextResponse.json({ error: 'AI không phản hồi' }, { status: 500 });
     }
 
@@ -70,9 +57,13 @@ export async function POST(request: Request) {
     
     try {
         const parsedData = JSON.parse(cleanJson);
-        return NextResponse.json(parsedData);
+        // Kiểm tra lại nếu AI vẫn "lười" trả về ít hơn yêu cầu
+        if (parsedData.variants && parsedData.variants.length > 0) {
+            return NextResponse.json(parsedData);
+        }
+        throw new Error("Mảng variants trống");
     } catch (parseError) {
-        console.error("LỖI ĐỊNH DẠNG JSON:", cleanJson);
+        console.error("LỖI JSON:", responseText);
         return NextResponse.json({ error: 'AI trả về sai định dạng' }, { status: 500 });
     }
 
