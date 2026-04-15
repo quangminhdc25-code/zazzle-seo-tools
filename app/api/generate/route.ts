@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 
+// XIN VERCEL GIA HẠN THỜI GIAN CHẠY LÊN 60 GIÂY (Tránh lỗi Timeout khi tạo nhiều bộ)
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const { title, description, quantity } = await request.json();
     
-    // Giới hạn an toàn từ 1 đến 5 để tránh quá tải AI hoặc timeout server
     const qty = Math.min(Math.max(1, quantity || 1), 5);
 
     const prompt = `Bạn là một Chuyên gia SEO Thương mại điện tử bậc thầy cho Zazzle.
@@ -38,7 +40,6 @@ export async function POST(request: Request) {
           "newDescription": "...",
           "newTags": "..."
         }
-        // ... tạo đủ ${qty} bộ theo cấu trúc này
       ]
     }`;
 
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         "model": "openrouter/free",
         "messages": [{ "role": "user", "content": prompt }],
-        "temperature": 0.7 // Tăng nhẹ để AI sáng tạo ra các bộ khác biệt nhau hơn
+        "temperature": 0.7 
       })
     });
 
