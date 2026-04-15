@@ -2,8 +2,8 @@
 import { useState } from 'react';
 
 export default function Home() {
-  // Đã bỏ biến tags gốc, chỉ còn title và description
   const [original, setOriginal] = useState({ title: '', description: '' });
+  const [quantity, setQuantity] = useState(1); // Thêm trạng thái lưu số lượng
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{title: string, description: string, tags: string}[]>([]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -19,18 +19,22 @@ export default function Home() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(original),
+        body: JSON.stringify({ ...original, quantity }), // Gửi thêm biến quantity
       });
       const data = await res.json();
 
-      if (data.newTitle) {
-        setResults((prev) => [{
-          title: data.newTitle,
-          description: data.newDescription,
-          tags: data.newTags
-        }, ...prev]);
+      if (data.variants && Array.isArray(data.variants)) {
+        // AI trả về một mảng chứa nhiều kết quả
+        const newResults = data.variants.map((v: any) => ({
+          title: v.newTitle || '',
+          description: v.newDescription || '',
+          tags: v.newTags || ''
+        }));
+        
+        // Đưa các kết quả mới lên đầu danh sách
+        setResults((prev) => [...newResults, ...prev]);
       } else {
-        alert('Có lỗi từ AI, vui lòng thử lại.');
+        alert('Có lỗi định dạng từ AI, vui lòng thử lại.');
       }
     } catch (error) {
       alert('Lỗi kết nối, vui lòng thử lại.');
@@ -46,7 +50,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen p-8 max-w-4xl mx-auto font-sans text-gray-900 bg-white">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">Amazon to Zazzle - SEO Optimizer</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">Amazon to Zazzle - Mass SEO Optimizer</h1>
 
       <div className="bg-gray-50 p-6 rounded-lg mb-8 shadow-md border border-gray-200">
         <h2 className="font-bold mb-4 text-lg">1. Nhập Dữ Liệu Winning T-Shirt Từ Amazon</h2>
@@ -62,12 +66,28 @@ export default function Home() {
           value={original.description}
           onChange={(e) => setOriginal({...original, description: e.target.value})}
         />
+        
+        <div className="flex items-center mb-6 bg-white p-3 border border-gray-300 rounded">
+          <label className="font-bold text-gray-700 mr-4">Số lượng biến thể cần tạo:</label>
+          <select 
+            value={quantity} 
+            onChange={(e) => setQuantity(Number(e.target.value))}
+            className="p-2 border border-gray-300 rounded font-medium outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value={1}>1 bộ</option>
+            <option value={2}>2 bộ (Khuyên dùng)</option>
+            <option value={3}>3 bộ</option>
+            <option value={4}>4 bộ</option>
+            <option value={5}>5 bộ</option>
+          </select>
+        </div>
+
         <button
           onClick={handleGenerate}
           disabled={loading}
           className="w-full bg-blue-600 text-white px-6 py-4 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 transition-colors shadow-lg text-lg"
         >
-          {loading ? 'AI đang phân tích và tối ưu hóa SEO... Vui lòng đợi' : '2. Bấm Generate (Tạo bộ SEO cho Zazzle)'}
+          {loading ? '⏳ AI đang làm việc... (Bạn có thể dán bài mới vào ô trên)' : `2. Bấm Generate (${quantity} bộ)`}
         </button>
       </div>
 
@@ -102,7 +122,7 @@ export default function Home() {
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <strong className="text-gray-700">Zazzle Tags (Tự động tạo):</strong>
+                  <strong className="text-gray-700">Zazzle Tags:</strong>
                   <button onClick={() => handleCopy(item.tags, `tags-${index}`)} className="text-sm bg-gray-200 hover:bg-green-500 hover:text-white text-gray-700 px-3 py-1 rounded transition font-medium">
                     {copiedField === `tags-${index}` ? 'Đã Copy ✓' : 'Copy'}
                   </button>
