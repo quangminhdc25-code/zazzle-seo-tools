@@ -8,39 +8,35 @@ export async function POST(request: Request) {
     const qty = Math.min(Math.max(1, quantity || 1), 5);
 
     const prompt = `[SYSTEM]
-You are an expert SEO Copywriter for Zazzle. Your task is to rewrite Amazon product data (Title, Description) into a highly optimized Zazzle listing. 
+You are an expert SEO Copywriter for Zazzle. Your task is to rewrite Amazon product data into a highly optimized Zazzle listing. 
 
 INSTRUCTIONS:
-First, analyze the Amazon data to determine if the core design is "Graphic-based" or "Text-based". Then, generate EXACTLY ${qty} variants of the Title, Description, and Tags by STRICTLY adhering to the Zazzle Best Practices below.
+First, deeply analyze the Amazon data. IDENTIFY THE CORE VISUAL SUBJECT (e.g., "Messy Bun", "Black Crow") and ensure it is the focal point of your output. Do not lose the main artwork theme.
+Then, generate EXACTLY ${qty} variants of the Title, Description, and Tags by STRICTLY adhering to the Zazzle Best Practices below.
 
 ### 1. TITLES
 - Structure based on design type:
-  * Graphic-based: [trait] [color] [style] [content] [design type] (e.g., "Vintage Navy and Pink Watercolor Floral")
-  * Text-based: [full/partial phrase] [trait] [content] [color] [design type] (e.g., "No Bad Days Funny Quote with Yellow Text")
-- DO: Use descriptive keywords (theme, color, pattern, target audience).
+  * Graphic-based: [trait] [color] [style] [content] [design type] (e.g., "Patriotic Red White Blue Messy Bun Graphic")
+  * Text-based: [full/partial phrase] [trait] [content] [color] [design type]
+- DO: Use descriptive keywords (theme, color, pattern, target audience). Keep the core visual subject.
 - DO: Use keywords customers normally search for.
-- DON'T: Include the Product type (e.g., T-shirt, shirt, tee).
+- DON'T: Include the Product type (e.g., T-shirt, shirt, tee, apparel).
 - DON'T: Use a numbering scheme.
 - DON'T: Use less than 3 words or less than 20 characters.
-- DON'T: Use only artistic/abstract naming conventions.
-- DON'T: Use special characters or obscure unicode (+ ^ } ~).
+- DON'T: Use special characters (+ ^ } ~).
 
 ### 2. DESCRIPTION
-- DO: Write 3 to 5 sentences (~300 characters). Tell the 'story' behind the design, interesting use cases, and customization tips.
+- DO: Write 3 to 5 sentences (~300 characters). Tell the 'story' behind the design, mention the core visual subject clearly, give interesting use cases, and customization tips.
 - DO: Use human-readable sentences; write for customers.
-- DO: Include related keywords that you used in the title.
+- DO: Include related keywords used in the title.
 - DON'T: Leave empty, employ keyword stuffing, or use irrelevant keywords.
-- DON'T: Use sentences that don't provide additional info beyond the title.
 
 ### 3. TAGS
 - Limit: EXACTLY 10 tags. Minimum 3 characters per tag. Maximum 5 words per phrase tag.
-- DO: Build tags around phrases. Use specific, descriptive keywords.
-- DO: Repeat keywords from the title and related search terms.
-- DON'T: Use product types as tags.
-- DON'T: Use plural variations.
-- DON'T: Repeat keywords across multiple tags.
-- DON'T: Employ keyword stuffing or irrelevant keywords.
-- DON'T USE RESTRICTED KEYWORDS: gear, custom, create, gifts, presents, gift idea, products, merchandise, personalize, personalized, personalizable, customize, customized, customizable, custom made, customise, customisable, customised, made to order, make your own, personal, personalised, personalise, personalisable.
+- DO: Build tags around phrases. Use specific, descriptive keywords (color, theme, holiday, audience).
+- CRITICAL DON'T (ZERO TOLERANCE): NEVER repeat the same word across multiple tags. If you use a word in one tag, DO NOT use it in any other tag. Every single word must be unique across all 10 tags to prevent keyword stuffing.
+- CRITICAL DON'T: NEVER use product types (e.g., shirt, tee, apparel, clothing).
+- CRITICAL DON'T USE RESTRICTED KEYWORDS: gear, custom, create, gifts, presents, gift idea, products, merchandise, personalize, personalized, personalizable, customize, customized, customizable, custom made, customise, customisable, customised, made to order, make your own, personal, personalised, personalise, personalisable.
 
 [USER]
 Input Data:
