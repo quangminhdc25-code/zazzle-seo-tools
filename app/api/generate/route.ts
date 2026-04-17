@@ -48,8 +48,8 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
 {
   "variants": [
     {
-      "newTitle": "...",
-      "newDescription": "...",
+      "newTitle": "Generated Title here",
+      "newDescription": "Generated Description here",
       "newTags": "tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10"
     }
   ]
@@ -80,14 +80,13 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
         "X-Title": "Zazzle SEO Pro"
       },
       body: JSON.stringify({
-        model: "google/gemini-1.5-flash", // Model xịn, ổn định cao
+        model: "google/gemini-1.5-flash", // Model xịn, cực nhanh và thông minh
         messages: messages,
-        temperature: 0.7,
-        response_format: { type: "json_object" } // Ép trả về JSON chuẩn
+        temperature: 0.7
+        // ĐÃ XÓA response_format để tránh lỗi 400 trên OpenRouter
       })
     });
 
-    // Xử lý lỗi từ máy chủ OpenRouter
     if (!response.ok) {
        const errorText = await response.text();
        return NextResponse.json({ error: `OpenRouter API Error (${response.status}): ${errorText}` }, { status: response.status });
@@ -95,7 +94,6 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
 
     const data = await response.json();
     
-    // Xử lý lỗi từ Model AI (ví dụ: cạn tiền, model bị chặn)
     if (data.error) {
        return NextResponse.json({ error: `AI Model Error: ${data.error.message || JSON.stringify(data.error)}` }, { status: 500 });
     }
