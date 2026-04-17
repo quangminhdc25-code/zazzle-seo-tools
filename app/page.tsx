@@ -2,48 +2,90 @@
 
 import { useState } from 'react';
 
+// Component nút Copy nhỏ gọn
+const CopyButton = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000); // Tự tắt chữ Đã Copy sau 2s
+  };
+
+  return (
+    <button 
+      onClick={handleCopy} 
+      className={`text-sm font-semibold px-3 py-1 rounded border transition-colors ${
+        copied ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+      }`}
+    >
+      {copied ? '✓ Đã Copy' : 'Copy'}
+    </button>
+  );
+};
+
 export default function ZazzleSEOTool() {
-  // 1. Thay đổi State (Biến lưu trữ dữ liệu)
+  const [imageBase64, setImageBase64] = useState<string>('');
+  const [textOnDesign, setTextOnDesign] = useState('');
+  const [etsyTitle1, setEtsyTitle1] = useState('');
+  const [etsyTitle2, setEtsyTitle2] = useState('');
   const [coreSubject, setCoreSubject] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [vibe, setVibe] = useState('');
   const [quantity, setQuantity] = useState(1);
   
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<any[]>([]); // Lưu mảng kết quả
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 3. Thay đổi Dữ liệu gửi đi trong hàm gọi API
+  // Xử lý upload ảnh chuyển sang Base64
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!coreSubject) {
-      setError('Vui lòng nhập Core Subject (Chủ thể hình ảnh).');
+      setError('Vui lòng nhập Chủ thể cốt lõi (Core Subject).');
       return;
     }
 
     setLoading(true);
     setError('');
-    setResults([]);
 
     try {
+      const etsyTitles = [etsyTitle1, etsyTitle2].filter(t => t.trim() !== '');
+
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ coreSubject, targetAudience, vibe, quantity }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          imageBase64, 
+          textOnDesign, 
+          etsyTitles, 
+          coreSubject, 
+          targetAudience, 
+          vibe, 
+          quantity 
+        }),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Có lỗi xảy ra từ máy chủ.');
-      }
+      if (!response.ok) throw new Error(data.error || 'Lỗi máy chủ.');
 
       if (data.variants) {
-        setResults(data.variants);
+        // QUAN TRỌNG: Đẩy kết quả mới lên đầu mảng (History prepended)
+        setResults(prev => [...data.variants, ...prev]);
       } else {
-        throw new Error('Dữ liệu trả về không đúng định dạng.');
+        throw new Error('Định dạng JSON hỏng.');
       }
     } catch (err: any) {
       setError(err.message);
@@ -54,112 +96,96 @@ export default function ZazzleSEOTool() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 font-sans">
-      <h1 className="text-3xl font-bold mb-8 text-center">Zazzle SEO Pro Generator</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center text-blue-800">Zazzle Hybrid SEO Generator</h1>
 
-      <form onSubmit={handleGenerate} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-8">
-        {/* 2. Thay đổi Giao diện Ô nhập liệu */}
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Core Subject (Chủ thể thiết kế) <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            placeholder="VD: Black Crow, Messy Bun, Floral Skull..."
-            value={coreSubject}
-            onChange={(e) => setCoreSubject(e.target.value)}
-            required
-          />
+      <form onSubmit={handleGenerate} className="bg-white shadow-lg rounded-xl px-8 pt-6 pb-8 mb-8 border border-gray-200">
+        
+        {/* Khối 1: Tải ảnh & Text trên áo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <label className="block text-blue-900 font-bold mb-2">1. Upload Ảnh thiết kế (Tùy chọn)</label>
+            <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
+            {imageBase64 && <img src={imageBase64} alt="Preview" className="mt-2 h-20 object-contain rounded" />}
+          </div>
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <label className="block text-blue-900 font-bold mb-2">2. Text in trên áo (OCR Bypass)</label>
+            <input type="text" placeholder="Gõ chính xác chữ trên áo vào đây..." className="w-full p-2 border rounded" value={textOnDesign} onChange={(e) => setTextOnDesign(e.target.value)} />
+          </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Target Audience (Khách hàng mục tiêu)
-          </label>
-          <input
-            type="text"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            placeholder="VD: Dog Mom, Introvert, Union Worker..."
-            value={targetAudience}
-            onChange={(e) => setTargetAudience(e.target.value)}
-          />
+        {/* Khối 2: Etsy Keywords */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <label className="block text-gray-800 font-bold mb-2">3. Mượn Keyword từ Etsy (Dán Title Etsy vào đây)</label>
+          <div className="space-y-2">
+            <input type="text" placeholder="Etsy Title 1..." className="w-full p-2 border rounded" value={etsyTitle1} onChange={(e) => setEtsyTitle1(e.target.value)} />
+            <input type="text" placeholder="Etsy Title 2..." className="w-full p-2 border rounded" value={etsyTitle2} onChange={(e) => setEtsyTitle2(e.target.value)} />
+          </div>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Vibe / Theme / Occasion (Phong cách / Dịp lễ)
-          </label>
-          <input
-            type="text"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            placeholder="VD: Halloween, Funny, Dark Fantasy, Labor Day..."
-            value={vibe}
-            onChange={(e) => setVibe(e.target.value)}
-          />
+        {/* Khối 3: Ma trận Zazzle */}
+        <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+          <label className="block text-yellow-900 font-bold mb-4">4. Định hướng Zazzle (Bắt buộc)</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-semibold">Core Subject *</label>
+              <input type="text" placeholder="Messy Bun, Flag..." className="w-full p-2 border rounded mt-1" value={coreSubject} onChange={(e) => setCoreSubject(e.target.value)} required />
+            </div>
+            <div>
+              <label className="text-sm font-semibold">Audience</label>
+              <input type="text" placeholder="Women, Mom..." className="w-full p-2 border rounded mt-1" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-semibold">Vibe / Occasion</label>
+              <input type="text" placeholder="Labor Day, Patriotic..." className="w-full p-2 border rounded mt-1" value={vibe} onChange={(e) => setVibe(e.target.value)} />
+            </div>
+          </div>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Số lượng bộ nội dung cần tạo (1-5)
-          </label>
-          <input
-            type="number"
-            min="1"
-            max="5"
-            className="shadow appearance-none border rounded w-full md:w-1/3 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-          />
-        </div>
-
-        <div className="flex items-center justify-center">
-          <button
-            type="submit"
-            disabled={loading}
-            className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline w-full md:w-auto ${
-              loading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            {loading ? 'Đang xử lý (Vui lòng đợi)...' : 'Tạo nội dung SEO'}
+        <div className="flex items-center justify-between mt-8">
+          <div className="flex items-center space-x-2">
+            <label className="font-bold text-gray-700">Số lượng:</label>
+            <input type="number" min="1" max="5" className="w-16 p-2 border rounded text-center" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
+          </div>
+          <button type="submit" disabled={loading} className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded shadow-md ${loading ? 'opacity-50' : ''}`}>
+            {loading ? 'Đang phân tích AI...' : 'Tạo Nội Dung SEO'}
           </button>
         </div>
       </form>
 
-      {/* Hiển thị lỗi */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
-          <span className="block sm:inline">{error}</span>
-        </div>
-      )}
+      {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-6 font-bold">{error}</div>}
 
-      {/* Hiển thị kết quả */}
-      {results.length > 0 && (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold mb-4">Kết quả tạo:</h2>
-          {results.map((variant, index) => (
-            <div key={index} className="bg-gray-50 border border-gray-200 p-6 rounded-lg shadow-sm">
-              <h3 className="font-bold text-lg text-blue-800 mb-2">
-                Variant {index + 1}
-              </h3>
-              
-              <div className="mb-3">
-                <span className="font-bold text-gray-700">Title: </span>
-                <span className="text-gray-900">{variant.newTitle}</span>
-              </div>
-              
-              <div className="mb-3">
-                <span className="font-bold text-gray-700">Description: </span>
-                <p className="text-gray-900 mt-1 whitespace-pre-wrap">{variant.newDescription}</p>
-              </div>
-              
-              <div>
-                <span className="font-bold text-gray-700">Tags: </span>
-                <span className="text-gray-900">{variant.newTags}</span>
+      {/* HIỂN THỊ KẾT QUẢ (Mới nhất nằm trên cùng) */}
+      <div className="space-y-6">
+        {results.map((variant, index) => (
+          <div key={index} className="bg-white border-2 border-gray-200 p-6 rounded-xl shadow-sm relative overflow-hidden">
+            {index === 0 && <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">MỚI NHẤT</div>}
+            
+            <div className="mb-5 bg-gray-50 p-4 rounded border">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-bold text-gray-700 w-24">Title:</span>
+                <p className="flex-1 text-gray-900 font-medium">{variant.newTitle}</p>
+                <CopyButton text={variant.newTitle} />
               </div>
             </div>
-          ))}
-        </div>
-      )}
+            
+            <div className="mb-5 bg-gray-50 p-4 rounded border">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-bold text-gray-700 w-24">Description:</span>
+                <p className="flex-1 text-gray-900 text-justify pr-4">{variant.newDescription}</p>
+                <CopyButton text={variant.newDescription} />
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded border border-blue-100">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-bold text-blue-900 w-24">Tags:</span>
+                <p className="flex-1 text-blue-800 font-mono text-sm leading-relaxed pr-4">{variant.newTags}</p>
+                <CopyButton text={variant.newTags} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

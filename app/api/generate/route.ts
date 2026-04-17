@@ -4,62 +4,74 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    // 1. Nhận 3 biến đầu vào theo Ma trận Parametric Input thay vì Amazon data
-    const { coreSubject, targetAudience, vibe, quantity } = await request.json();
+    const body = await request.json();
+    const { 
+      imageBase64, 
+      textOnDesign, 
+      etsyTitles, 
+      coreSubject, 
+      targetAudience, 
+      vibe, 
+      quantity 
+    } = body;
+
     const qty = Math.min(Math.max(1, quantity || 1), 5);
 
-    // Bắt lỗi nếu thiếu dữ liệu đầu vào quan trọng
-    if (!coreSubject) {
-      return NextResponse.json({ error: 'Vui lòng nhập Chủ thể cốt lõi (Core Subject)' }, { status: 400 });
-    }
-
-    const prompt = `[SYSTEM]
-You are an expert SEO Copywriter for Zazzle. Your task is to create a highly optimized Zazzle listing based on specific design parameters provided by the user.
+    const promptText = `[SYSTEM]
+You are an expert SEO Copywriter for Zazzle. Your task is to analyze the provided design image and parameters to create a highly optimized Zazzle listing.
 
 INSTRUCTIONS:
-Generate EXACTLY ${qty} variant(s) of the Title, Description, and Tags by STRICTLY adhering to the Zazzle Best Practices below. Focus the content entirely around the provided Core Subject, Target Audience, and Vibe/Theme.
+1. IMAGE ANALYSIS: Look at the provided image to understand the visual style, theme, and colors.
+2. TEXT ON DESIGN: CRITICAL! DO NOT attempt to read text from the image itself. Use ONLY the exact text provided here: "${textOnDesign || 'No text on design'}".
+3. KEYWORD INSPIRATION: Extract powerful SEO keywords from these competitor titles, but DO NOT copy their exact structure: ${etsyTitles.join(' | ')}.
+4. FOCUS: Base your content around Core Subject: "${coreSubject}", Audience: "${targetAudience}", Vibe: "${vibe}".
 
 ### 1. TITLES
-- Structure based on design type:
-  * Graphic-based: [trait] [color] [style] [content] [design type]
-  * Text-based: [full/partial phrase] [trait] [content] [color] [design type]
-- DO: Use descriptive keywords (theme, color, pattern, target audience). Make sure the Core Subject is the focal point.
-- DO: Use keywords customers normally search for.
-- DON'T: Include the Product type (e.g., T-shirt, shirt, tee, apparel).
-- DON'T: Use a numbering scheme.
-- DON'T: Use less than 3 words or less than 20 characters.
+- Structure: [trait] [color] [style] [content] [design type] (e.g., Patriotic Red White Blue Messy Bun Graphic)
+- DO: Use descriptive keywords. Make sure the Core Subject is the focal point.
+- DON'T: Include Product types (e.g., T-shirt, shirt, tee, apparel). 
 - DON'T: Use special characters (+ ^ } ~).
 
 ### 2. DESCRIPTION
-- DO: Write 3 to 5 sentences (~300 characters). Tell the 'story' behind the design, mention the Core Subject and Target Audience clearly, give interesting use cases based on the Vibe/Theme, and customization tips.
-- DO: Use human-readable sentences; write for customers.
-- DO: Include related keywords used in the title.
-- DON'T: Leave empty, employ keyword stuffing, or use irrelevant keywords.
+- DO: Write 3 to 4 sentences. Tell the 'story' behind the design, mention the Core Subject, and use cases based on the Vibe.
+- DO: Mention the exact "Text on Design" if provided.
+- DON'T: Use product types (shirt, mug, accessory, etc.). Keep it as a "design", "artwork", or "graphic".
 
 ### 3. TAGS
-- Limit: EXACTLY 10 tags. Minimum 3 characters per tag. Maximum 5 words per phrase tag.
-- DO: Build tags around phrases. Use specific, descriptive keywords (color, theme, holiday, audience).
-- CRITICAL DON'T (ZERO TOLERANCE): NEVER repeat the same word across multiple tags. Every single word must be unique across all 10 tags.
-- CRITICAL DON'T: NEVER use product types (e.g., shirt, tee, apparel, clothing).
-- CRITICAL DON'T USE RESTRICTED KEYWORDS: gear, custom, create, gifts, presents, gift idea, products, merchandise, personalize, personalized, personalizable, customize, customized, customizable, custom made, customise, customisable, customised, made to order, make your own, personal, personalised, personalise, personalisable.
-
-[USER]
-Design Parameters:
-- Core Subject (What is the artwork?): ${coreSubject}
-- Target Audience (Who is it for?): ${targetAudience || 'General / Anyone'}
-- Vibe / Theme / Occasion (What is the style or event?): ${vibe || 'Everyday wear / Casual'}
+- Limit: EXACTLY 10 tags. Min 3 chars per tag. Max 5 words per phrase.
+- CRITICAL DON'T (ZERO TOLERANCE): NEVER repeat the same word across multiple tags. Every single word must be unique.
+- CRITICAL DON'T: NEVER use product types (shirt, tee, apparel, clothing, accessory).
+- CRITICAL DON'T USE RESTRICTED KEYWORDS: gear, custom, create, gifts, presents, gift idea, products, merchandise, personalize, personalized, customize, customized.
 
 OUTPUT FORMAT:
-Output ONLY a JSON object containing exactly ${qty} variant(s). NO markdown, NO extra text. The JSON MUST exactly match this structure:
+Output ONLY a JSON object containing exactly ${qty} variant(s). NO markdown.
 {
   "variants": [
     {
-      "newTitle": "Generated Title here",
-      "newDescription": "Generated Description here",
+      "newTitle": "...",
+      "newDescription": "...",
       "newTags": "tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10"
     }
   ]
 }`;
+
+    // Cấu trúc message cho Vision Model
+    const messages: any[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: promptText }
+        ]
+      }
+    ];
+
+    // Nếu có ảnh, đính kèm ảnh vào cho AI
+    if (imageBase64) {
+      messages[0].content.push({
+        type: "image_url",
+        image_url: { url: imageBase64 }
+      });
+    }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -70,9 +82,9 @@ Output ONLY a JSON object containing exactly ${qty} variant(s). NO markdown, NO 
         "X-Title": "Zazzle SEO Pro"
       },
       body: JSON.stringify({
-        "model": "openrouter/free",
-        "messages": [{ "role": "user", "content": prompt }],
-        "temperature": 0.7 
+        model: "meta-llama/llama-3.2-11b-vision-instruct:free", // Dùng Llama Vision của Meta
+        messages: messages,
+        temperature: 0.7 
       })
     });
 
