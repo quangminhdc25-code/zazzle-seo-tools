@@ -16,26 +16,25 @@ export async function POST(request: Request) {
     } = body;
 
     const qty = Math.min(Math.max(1, quantity || 1), 5);
+    const joinedTitles = etsyTitles && etsyTitles.length > 0 ? etsyTitles.join(' | ') : 'None';
 
     const promptText = `[SYSTEM]
-You are an expert SEO Copywriter for Zazzle. Your task is to analyze the provided design image and parameters to create a highly optimized Zazzle listing.
+You are an expert SEO Copywriter for Zazzle. Your task is to analyze the provided design parameters (and image if provided) to create a highly optimized Zazzle listing.
 
 INSTRUCTIONS:
-1. IMAGE ANALYSIS: Look at the provided image to understand the visual style, theme, and colors.
-2. TEXT ON DESIGN: CRITICAL! DO NOT attempt to read text from the image itself. Use ONLY the exact text provided here: "${textOnDesign || 'No text on design'}".
-3. KEYWORD INSPIRATION: Extract SEO keywords from these competitor titles, but DO NOT copy their structure: ${etsyTitles.join(' | ')}.
-4. FOCUS: Base your content around Core Subject: "${coreSubject}", Audience: "${targetAudience}", Vibe: "${vibe}".
+1. TEXT ON DESIGN: CRITICAL! DO NOT attempt to read text from the image. Use ONLY the exact text provided here: "${textOnDesign || 'No text on design'}".
+2. KEYWORD INSPIRATION: Extract SEO keywords from these competitor titles, but DO NOT copy their structure: ${joinedTitles}.
+3. FOCUS: Base your content around Core Subject: "${coreSubject}", Audience: "${targetAudience}", Vibe: "${vibe}".
 
 ### 1. TITLES
 - Structure: [trait] [color] [style] [content] [design type]
 - DO: Use descriptive keywords. Core Subject must be the focal point.
 - DON'T: Include Product types (e.g., T-shirt, shirt, tee, apparel). 
-- DON'T: Use special characters (+ ^ } ~).
 
 ### 2. DESCRIPTION
-- DO: Write 3 to 4 sentences. Tell the 'story' behind the design, mention the Core Subject, and use cases based on the Vibe.
+- DO: Write 3 to 4 sentences. Tell the 'story' behind the design. Mention the Core Subject.
 - DO: Mention the exact "Text on Design" if provided.
-- DON'T: Use product types (shirt, mug, accessory). Keep it as "design", "artwork", or "graphic".
+- DON'T: Use product types (shirt, mug, accessory). Use "design", "artwork", or "graphic".
 
 ### 3. TAGS
 - Limit: EXACTLY 10 tags. Min 3 chars per tag. Max 5 words per phrase.
@@ -55,20 +54,18 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
   ]
 }`;
 
-    const messages: any[] = [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: promptText }
-        ]
-      }
-    ];
-
-    if (imageBase64) {
-      messages[0].content.push({
-        type: "image_url",
-        image_url: { url: imageBase64 }
-      });
+    // CỐT LÕI KHẮC PHỤC LỖI 400: Xử lý linh hoạt cấu trúc Content
+    let messageContent: any;
+    
+    if (imageBase64 && imageBase64.startsWith('data:image')) {
+        // NẾU CÓ ẢNH: Bắt buộc dùng cấu trúc Array
+        messageContent = [
+            { type: "text", text: promptText },
+            { type: "image_url", image_url: { url: imageBase64 } }
+        ];
+    } else {
+        // NẾU KHÔNG CÓ ẢNH: Bắt buộc dùng cấu trúc String (văn bản thuần)
+        messageContent = promptText;
     }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -80,26 +77,26 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
         "X-Title": "Zazzle SEO Pro"
       },
       body: JSON.stringify({
-        model: "google/gemini-1.5-flash", // Model xịn, cực nhanh và thông minh
-        messages: messages,
+        model: "google/gemini-1.5-flash",
+        messages: [
+            {
+                role: "user",
+                content: messageContent
+            }
+        ],
         temperature: 0.7
-        // ĐÃ XÓA response_format để tránh lỗi 400 trên OpenRouter
       })
     });
 
     if (!response.ok) {
        const errorText = await response.text();
-       return NextResponse.json({ error: `OpenRouter API Error (${response.status}): ${errorText}` }, { status: response.status });
+       return NextResponse.json({ error: `Lỗi OpenRouter (${response.status}): ${errorText}` }, { status: response.status });
     }
 
     const data = await response.json();
     
-    if (data.error) {
-       return NextResponse.json({ error: `AI Model Error: ${data.error.message || JSON.stringify(data.error)}` }, { status: 500 });
-    }
-
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        return NextResponse.json({ error: 'AI trả về dữ liệu rỗng. Vui lòng thử lại.' }, { status: 500 });
+    if (!data.choices || data.choices.length === 0) {
+        return NextResponse.json({ error: 'AI trả về dữ liệu rỗng. Model có thể đang bảo trì.' }, { status: 500 });
     }
 
     const responseText = data.choices[0].message.content;
@@ -107,12 +104,12 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
     
     try {
         const parsedData = JSON.parse(cleanJson);
-        if (parsedData.variants && parsedData.variants.length > 0) return NextResponse.json(parsedData);
-        throw new Error("Lỗi cấu trúc Variants rỗng.");
+        if (parsedData.variants) return NextResponse.json(parsedData);
+        throw new Error("JSON thiếu key 'variants'");
     } catch (e: any) {
-        return NextResponse.json({ error: `Lỗi parse JSON: ${e.message}. AI Output: ${responseText.substring(0, 50)}...` }, { status: 500 });
+        return NextResponse.json({ error: `Lỗi Parse JSON: ${e.message}` }, { status: 500 });
     }
   } catch (error: any) {
-    return NextResponse.json({ error: `Lỗi hệ thống nội bộ: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Lỗi Backend: ${error.message}` }, { status: 500 });
   }
 }
