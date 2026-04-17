@@ -37,7 +37,6 @@ export default function ZazzleSEOTool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Thuật toán nén ảnh tự động trên Frontend để tránh lỗi "Request Entity Too Large"
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -46,7 +45,7 @@ export default function ZazzleSEOTool() {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800; // Cố định chiều rộng tối đa 800px để AI đọc nhanh và chống quá tải
+          const MAX_WIDTH = 800; 
           let width = img.width;
           let height = img.height;
 
@@ -60,7 +59,6 @@ export default function ZazzleSEOTool() {
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // Nén thành JPEG chất lượng 70% (Đủ nét cho AI, siêu nhẹ cho Server)
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
           setImageBase64(compressedBase64);
         };
@@ -97,10 +95,9 @@ export default function ZazzleSEOTool() {
         }),
       });
 
-      // Bắt lỗi nếu response không phải là 200 OK
       if (!response.ok) {
         const textError = await response.text();
-        throw new Error(`Lỗi máy chủ (${response.status}): ${textError.substring(0, 50)}...`);
+        throw new Error(`Lỗi máy chủ (${response.status}): ${textError.substring(0, 150)}...`);
       }
 
       const data = await response.json();
@@ -126,9 +123,15 @@ export default function ZazzleSEOTool() {
         {/* Khối 1: Tải ảnh & Text trên áo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <label className="block text-blue-900 font-bold mb-2">1. Upload Ảnh (Tự động nén)</label>
-            <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm text-black" />
-            {imageBase64 && <img src={imageBase64} alt="Preview" className="mt-2 h-20 object-contain rounded" />}
+            <label className="block text-blue-900 font-bold mb-3">1. Upload Ảnh (Tự động nén)</label>
+            <div className="flex items-center gap-4">
+              <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow-sm transition-colors">
+                + Chọn Hình Ảnh
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
+              {imageBase64 && <span className="text-sm text-green-700 font-bold">✓ Đã tải ảnh</span>}
+            </div>
+            {imageBase64 && <img src={imageBase64} alt="Preview" className="mt-3 h-24 object-contain rounded border border-gray-300 shadow-sm bg-white" />}
           </div>
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
             <label className="block text-blue-900 font-bold mb-2">2. Text in trên áo (OCR Bypass)</label>
@@ -175,7 +178,7 @@ export default function ZazzleSEOTool() {
         </div>
       </form>
 
-      {error && <div className="bg-red-100 text-red-800 border border-red-300 p-4 rounded mb-6 font-bold">{error}</div>}
+      {error && <div className="bg-red-100 text-red-800 border border-red-300 p-4 rounded mb-6 font-bold whitespace-pre-wrap">{error}</div>}
 
       {/* HIỂN THỊ KẾT QUẢ */}
       <div className="space-y-6">

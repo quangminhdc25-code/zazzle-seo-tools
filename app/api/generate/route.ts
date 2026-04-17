@@ -54,17 +54,15 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
   ]
 }`;
 
-    // CỐT LÕI KHẮC PHỤC LỖI 400: Xử lý linh hoạt cấu trúc Content
+    // Xử lý linh hoạt mảng Content để không bị lỗi 400
     let messageContent: any;
     
     if (imageBase64 && imageBase64.startsWith('data:image')) {
-        // NẾU CÓ ẢNH: Bắt buộc dùng cấu trúc Array
         messageContent = [
             { type: "text", text: promptText },
             { type: "image_url", image_url: { url: imageBase64 } }
         ];
     } else {
-        // NẾU KHÔNG CÓ ẢNH: Bắt buộc dùng cấu trúc String (văn bản thuần)
         messageContent = promptText;
     }
 
@@ -77,7 +75,7 @@ Output ONLY valid JSON. The JSON MUST exactly match this structure without markd
         "X-Title": "Zazzle SEO Pro"
       },
       body: JSON.stringify({
-        model: "google/gemini-1.5-flash",
+        model: "google/gemini-2.0-flash-exp:free", // Đã cập nhật Model ID chuẩn
         messages: [
             {
                 role: "user",
