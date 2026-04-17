@@ -4,21 +4,26 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const { title, description, quantity } = await request.json();
+    // 1. Nhận 3 biến đầu vào theo Ma trận Parametric Input thay vì Amazon data
+    const { coreSubject, targetAudience, vibe, quantity } = await request.json();
     const qty = Math.min(Math.max(1, quantity || 1), 5);
 
+    // Bắt lỗi nếu thiếu dữ liệu đầu vào quan trọng
+    if (!coreSubject) {
+      return NextResponse.json({ error: 'Vui lòng nhập Chủ thể cốt lõi (Core Subject)' }, { status: 400 });
+    }
+
     const prompt = `[SYSTEM]
-You are an expert SEO Copywriter for Zazzle. Your task is to rewrite Amazon product data into a highly optimized Zazzle listing. 
+You are an expert SEO Copywriter for Zazzle. Your task is to create a highly optimized Zazzle listing based on specific design parameters provided by the user.
 
 INSTRUCTIONS:
-First, deeply analyze the Amazon data. IDENTIFY THE CORE VISUAL SUBJECT (e.g., "Messy Bun", "Black Crow") and ensure it is the focal point of your output. Do not lose the main artwork theme.
-Then, generate EXACTLY ${qty} variants of the Title, Description, and Tags by STRICTLY adhering to the Zazzle Best Practices below.
+Generate EXACTLY ${qty} variant(s) of the Title, Description, and Tags by STRICTLY adhering to the Zazzle Best Practices below. Focus the content entirely around the provided Core Subject, Target Audience, and Vibe/Theme.
 
 ### 1. TITLES
 - Structure based on design type:
-  * Graphic-based: [trait] [color] [style] [content] [design type] (e.g., "Patriotic Red White Blue Messy Bun Graphic")
+  * Graphic-based: [trait] [color] [style] [content] [design type]
   * Text-based: [full/partial phrase] [trait] [content] [color] [design type]
-- DO: Use descriptive keywords (theme, color, pattern, target audience). Keep the core visual subject.
+- DO: Use descriptive keywords (theme, color, pattern, target audience). Make sure the Core Subject is the focal point.
 - DO: Use keywords customers normally search for.
 - DON'T: Include the Product type (e.g., T-shirt, shirt, tee, apparel).
 - DON'T: Use a numbering scheme.
@@ -26,7 +31,7 @@ Then, generate EXACTLY ${qty} variants of the Title, Description, and Tags by ST
 - DON'T: Use special characters (+ ^ } ~).
 
 ### 2. DESCRIPTION
-- DO: Write 3 to 5 sentences (~300 characters). Tell the 'story' behind the design, mention the core visual subject clearly, give interesting use cases, and customization tips.
+- DO: Write 3 to 5 sentences (~300 characters). Tell the 'story' behind the design, mention the Core Subject and Target Audience clearly, give interesting use cases based on the Vibe/Theme, and customization tips.
 - DO: Use human-readable sentences; write for customers.
 - DO: Include related keywords used in the title.
 - DON'T: Leave empty, employ keyword stuffing, or use irrelevant keywords.
@@ -34,14 +39,15 @@ Then, generate EXACTLY ${qty} variants of the Title, Description, and Tags by ST
 ### 3. TAGS
 - Limit: EXACTLY 10 tags. Minimum 3 characters per tag. Maximum 5 words per phrase tag.
 - DO: Build tags around phrases. Use specific, descriptive keywords (color, theme, holiday, audience).
-- CRITICAL DON'T (ZERO TOLERANCE): NEVER repeat the same word across multiple tags. If you use a word in one tag, DO NOT use it in any other tag. Every single word must be unique across all 10 tags to prevent keyword stuffing.
+- CRITICAL DON'T (ZERO TOLERANCE): NEVER repeat the same word across multiple tags. Every single word must be unique across all 10 tags.
 - CRITICAL DON'T: NEVER use product types (e.g., shirt, tee, apparel, clothing).
 - CRITICAL DON'T USE RESTRICTED KEYWORDS: gear, custom, create, gifts, presents, gift idea, products, merchandise, personalize, personalized, personalizable, customize, customized, customizable, custom made, customise, customisable, customised, made to order, make your own, personal, personalised, personalise, personalisable.
 
 [USER]
-Input Data:
-- Amazon Title: ${title}
-- Amazon Description: ${description}
+Design Parameters:
+- Core Subject (What is the artwork?): ${coreSubject}
+- Target Audience (Who is it for?): ${targetAudience || 'General / Anyone'}
+- Vibe / Theme / Occasion (What is the style or event?): ${vibe || 'Everyday wear / Casual'}
 
 OUTPUT FORMAT:
 Output ONLY a JSON object containing exactly ${qty} variant(s). NO markdown, NO extra text. The JSON MUST exactly match this structure:
