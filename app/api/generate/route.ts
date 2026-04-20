@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-// 1. Định nghĩa các Interface để vượt qua kiểm duyệt TypeScript của Vercel
+// 1. Định nghĩa Interfaces để triệt tiêu lỗi TypeScript "any"
 interface ZazzleVariant {
   newTitle: string;
   newDescription: string;
@@ -19,7 +19,7 @@ interface RequestBody {
   quantity?: number;
 }
 
-// Middleware: Cào dữ liệu từ Etsy URL
+// Middleware: Cào dữ liệu từ tiêu đề Etsy (Xử lý lỗi chặn server)
 async function scrapeEtsyTitle(url: string): Promise<string> {
   try {
     if (!url.includes('etsy.com')) return url;
@@ -37,7 +37,7 @@ async function scrapeEtsyTitle(url: string): Promise<string> {
   }
 }
 
-// Middleware: Lọc sạch rác SEO và trùng lặp Tags
+// Middleware: Lọc sạch từ khóa cấm và trùng lặp (Zero-Tolerance)
 function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
   const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
   
@@ -83,27 +83,26 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
-    if (!apiKey) throw new Error("Thiếu GOOGLE_AI_STUDIO_API_KEY trong Vercel Environment Variables.");
+    if (!apiKey) throw new Error("Thiếu biến môi trường GOOGLE_AI_STUDIO_API_KEY");
 
     const body = (await request.json()) as RequestBody;
     const { imageBase64, textOnDesign, etsyInput, coreSubject, targetAudience, vibe } = body;
 
     const etsyKeywords = await scrapeEtsyTitle(etsyInput || '');
 
-    const promptText = `Bạn là chuyên gia SEO Zazzle chuyên nghiệp.
-    DỮ LIỆU ĐẦU VÀO:
-    - Text in trên áo: "${textOnDesign || 'Không có'}"
+    const promptText = `Bạn là chuyên gia SEO Zazzle chuyên nghiệp. Hãy tạo nội dung niêm yết dựa trên:
+    - Text trên áo: "${textOnDesign || 'Không có'}"
     - Keyword từ Etsy: "${etsyKeywords}"
     - Chủ thể cốt lõi: "${coreSubject}"
-    - Đối tượng khách hàng: "${targetAudience || 'General'}"
-    - Phong cách thiết kế: "${vibe || 'Modern'}"
+    - Đối tượng: "${targetAudience || 'General'}"
+    - Vibe: "${vibe || 'Modern'}"
 
-    QUY TẮC ĐẦU RA (NGHIÊM NGẶT):
-    1. TITLE: [trait] [color] [style] [content] [design type]. CẤM từ khóa sản phẩm (shirt, mug).
-    2. DESCRIPTION: Viết 3-4 câu kể chuyện hấp dẫn. CẤM từ khóa sản phẩm.
-    3. TAGS: Tạo 15 tags. Mỗi từ đơn chỉ được xuất hiện 1 lần duy nhất trong toàn bộ 15 tags. CẤM lặp từ. CẤM từ khóa sản phẩm.
+    QUY TẮC BẮT BUỘC:
+    1. TITLE: [trait] [color] [style] [content] [design type]. CẤM từ sản phẩm (shirt, mug).
+    2. DESCRIPTION: 3-4 câu kể chuyện. CẤM từ sản phẩm.
+    3. TAGS: Tạo 15 tags. KHÔNG lặp từ. KHÔNG dùng từ sản phẩm.
 
-    TRẢ VỀ ĐỊNH DẠNG JSON DUY NHẤT:
+    TRẢ VỀ ĐỊNH DẠNG JSON:
     {
       "variants": [
         {
@@ -114,33 +113,31 @@ export async function POST(request: Request) {
       ]
     }`;
 
-    // Cấu trúc nội dung gửi cho Gemini 1.5 Flash
-    const geminiParts: any[] = [{ text: promptText }];
+    // Cấu trúc Payload cho Google Gemini API
+    const contents = [{
+      parts: [{ text: promptText }]
+    }];
 
     if (imageBase64 && imageBase64.includes('base64,')) {
       const [header, data] = imageBase64.split('base64,');
       const mimeType = header.split(':')[1].split(';')[0];
-      geminiParts.push({
-        inline_data: {
-          mime_type: mimeType,
-          data: data
-        }
-      });
+      contents[0].parts.push({
+        inline_data: { mime_type: mimeType, data: data }
+      } as any);
     }
 
-    // FIX LỖI 404: Sử dụng gemini-1.5-flash-latest để đảm bảo tìm thấy model
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: geminiParts }] })
+        body: JSON.stringify({ contents })
       }
     );
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Google AI Error (${response.status}): ${errText}`);
+      const errorData = await response.text();
+      throw new Error(`Google API Error (${response.status}): ${errorData}`);
     }
 
     const data = await response.json();
@@ -153,10 +150,10 @@ export async function POST(request: Request) {
       return NextResponse.json(parsedData);
     }
     
-    throw new Error("Dữ liệu AI trả về không đúng định dạng JSON.");
+    throw new Error("Cấu trúc JSON từ AI không hợp lệ.");
 
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Lỗi hệ thống không xác định";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Lỗi không xác định";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
