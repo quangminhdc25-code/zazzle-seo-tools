@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-// --- Định nghĩa Interface chuẩn Strict TypeScript ---
+// 1. Định nghĩa các Interface để vượt qua kiểm duyệt TypeScript của Vercel
 interface ZazzleVariant {
   newTitle: string;
   newDescription: string;
@@ -19,7 +19,7 @@ interface RequestBody {
   quantity?: number;
 }
 
-// --- Middleware: Tự động cào Title từ Etsy URL ---
+// Middleware: Cào dữ liệu từ Etsy URL
 async function scrapeEtsyTitle(url: string): Promise<string> {
   try {
     if (!url.includes('etsy.com')) return url;
@@ -37,7 +37,7 @@ async function scrapeEtsyTitle(url: string): Promise<string> {
   }
 }
 
-// --- Middleware: Lọc trùng lặp Tags và từ cấm (Zero Tolerance) ---
+// Middleware: Lọc sạch rác SEO và trùng lặp Tags
 function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
   const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
   
@@ -83,26 +83,27 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
-    if (!apiKey) throw new Error("Thiếu API Key trong Environment Variables.");
+    if (!apiKey) throw new Error("Thiếu GOOGLE_AI_STUDIO_API_KEY trong Vercel Environment Variables.");
 
     const body = (await request.json()) as RequestBody;
     const { imageBase64, textOnDesign, etsyInput, coreSubject, targetAudience, vibe } = body;
 
     const etsyKeywords = await scrapeEtsyTitle(etsyInput || '');
 
-    const promptText = `Bạn là chuyên gia SEO Zazzle. Hãy phân tích dữ liệu sau:
-    - Chữ trên thiết kế: "${textOnDesign || 'Không có'}"
-    - Cảm hứng từ Etsy: "${etsyKeywords}"
-    - Chủ thể chính: "${coreSubject}"
-    - Đối tượng: "${targetAudience || 'Mọi người'}"
-    - Phong cách: "${vibe || 'Hàng ngày'}"
+    const promptText = `Bạn là chuyên gia SEO Zazzle chuyên nghiệp.
+    DỮ LIỆU ĐẦU VÀO:
+    - Text in trên áo: "${textOnDesign || 'Không có'}"
+    - Keyword từ Etsy: "${etsyKeywords}"
+    - Chủ thể cốt lõi: "${coreSubject}"
+    - Đối tượng khách hàng: "${targetAudience || 'General'}"
+    - Phong cách thiết kế: "${vibe || 'Modern'}"
 
-    YÊU CẦU NGHIÊM NGẶT:
-    1. TITLE: Cấu trúc [trait] [color] [style] [content] [design type]. KHÔNG dùng tên sản phẩm (shirt, mug).
-    2. DESCRIPTION: 3-4 câu kể chuyện. KHÔNG dùng tên sản phẩm.
-    3. TAGS: Tạo 15 tags. Mỗi từ chỉ xuất hiện DUY NHẤT 1 lần trong toàn bộ các tags. KHÔNG lặp từ. KHÔNG dùng tên sản phẩm.
+    QUY TẮC ĐẦU RA (NGHIÊM NGẶT):
+    1. TITLE: [trait] [color] [style] [content] [design type]. CẤM từ khóa sản phẩm (shirt, mug).
+    2. DESCRIPTION: Viết 3-4 câu kể chuyện hấp dẫn. CẤM từ khóa sản phẩm.
+    3. TAGS: Tạo 15 tags. Mỗi từ đơn chỉ được xuất hiện 1 lần duy nhất trong toàn bộ 15 tags. CẤM lặp từ. CẤM từ khóa sản phẩm.
 
-    TRẢ VỀ JSON DUY NHẤT:
+    TRẢ VỀ ĐỊNH DẠNG JSON DUY NHẤT:
     {
       "variants": [
         {
@@ -113,36 +114,33 @@ export async function POST(request: Request) {
       ]
     }`;
 
-    // Cấu trúc Payload cho Google AI Studio (Gemini 1.5 Flash)
-    const geminiPayload: any = {
-      contents: [{
-        parts: [{ text: promptText }]
-      }]
-    };
+    // Cấu trúc nội dung gửi cho Gemini 1.5 Flash
+    const geminiParts: any[] = [{ text: promptText }];
 
     if (imageBase64 && imageBase64.includes('base64,')) {
-      const base64Data = imageBase64.split(',')[1];
-      const mimeType = imageBase64.split(';')[0].split(':')[1];
-      geminiPayload.contents[0].parts.push({
+      const [header, data] = imageBase64.split('base64,');
+      const mimeType = header.split(':')[1].split(';')[0];
+      geminiParts.push({
         inline_data: {
           mime_type: mimeType,
-          data: base64Data
+          data: data
         }
       });
     }
 
+    // FIX LỖI 404: Sử dụng gemini-1.5-flash-latest để đảm bảo tìm thấy model
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(geminiPayload)
+        body: JSON.stringify({ contents: [{ parts: geminiParts }] })
       }
     );
 
     if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Google API Error: ${err}`);
+      const errText = await response.text();
+      throw new Error(`Google AI Error (${response.status}): ${errText}`);
     }
 
     const data = await response.json();
@@ -155,7 +153,7 @@ export async function POST(request: Request) {
       return NextResponse.json(parsedData);
     }
     
-    throw new Error("Dữ liệu AI không đúng định dạng JSON variants.");
+    throw new Error("Dữ liệu AI trả về không đúng định dạng JSON.");
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Lỗi hệ thống không xác định";
