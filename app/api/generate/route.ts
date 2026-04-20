@@ -2,7 +2,158 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60; 
 
+export async function POST(request: Request) {import { NextResponse } from 'next/server';
+
+export const maxDuration = 60; // Timeout 60s cho phép Scraping và Fallback Model
+
+// Hàm cào Title Etsy (Dùng Regex thuần, không cần cài thêm thư viện để tránh lỗi)
+async function scrapeEtsyTitle(url: string) {
+  try {
+    if (!url.includes('etsy.com')) return url; // Nếu người dùng nhập text bình thường thì trả về text
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+    });
+    const html = await res.text();
+    const match = html.match(/<title>(.*?)<\/title>/);
+    return match && match[1] ? match[1].replace(' - Etsy', '').trim() : url;
+  } catch (e) {
+    return url; // Nếu bị chặn, dùng tạm URL/Text đó làm nguyên liệu luôn
+  }
+}
+
+// Middleware: Lớp kiểm duyệt SEO (Chặt chẽ tuyệt đối)
+function sanitizeSEO(variant: any) {
+  const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
+  
+  // Dọn dẹp Title & Description
+  let cleanTitle = variant.newTitle;
+  let cleanDesc = variant.newDescription;
+  blacklist.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    cleanTitle = cleanTitle.replace(regex, '');
+    cleanDesc = cleanDesc.replace(regex, 'design'); // Thay từ cấm bằng từ 'design' an toàn
+  });
+
+  // Thuật toán lọc Tags: Đảm bảo KHÔNG LẶP TỪ và LOẠI BỎ TỪ CẤM
+  const rawTags = variant.newTags.split(',').map((t: string) => t.trim().toLowerCase());
+  const seenWords = new Set<string>();
+  const cleanTags: string[] = [];
+
+  for (let tag of rawTags) {
+    const words = tag.split(/\s+/);
+    let isValidTag = true;
+
+    for (let word of words) {
+      const cleanWord = word.replace(/[^a-z0-9]/g, '');
+      if (!cleanWord) continue;
+      // Bỏ tag nếu chứa từ cấm hoặc từ đã từng xuất hiện
+      if (blacklist.includes(cleanWord) || seenWords.has(cleanWord)) {
+        isValidTag = false;
+        break;
+      }
+    }
+
+    if (isValidTag && cleanTags.length < 10) {
+      words.forEach(w => seenWords.add(w.replace(/[^a-z0-9]/g, '')));
+      cleanTags.push(tag);
+    }
+  }
+
+  return {
+    newTitle: cleanTitle.replace(/\s+/g, ' ').trim(),
+    newDescription: cleanDesc.replace(/\s+/g, ' ').trim(),
+    newTags: cleanTags.join(', ')
+  };
+}
+
 export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { imageBase64, textOnDesign, etsyInput, coreSubject, targetAudience, vibe, quantity } = body;
+    const qty = Math.min(Math.max(1, quantity || 1), 5);
+
+    // Xử lý Input: Cào dữ liệu Etsy tự động
+    const etsyKeywords = await scrapeEtsyTitle(etsyInput || '');
+
+    // Yêu cầu AI sinh ra 15 tags để lớp Middleware có "vốn" lọc xuống còn 10 tags
+    const promptText = `[SYSTEM] You are a Zazzle SEO Expert.
+    INPUTS:
+    - Text on Design: "${textOnDesign || 'None'}" (DO NOT read image text, use ONLY this).
+    - Etsy Inspiration: "${etsyKeywords}" (Extract intent, ignore product types).
+    - Core Subject: "${coreSubject}"
+    - Audience: "${targetAudience}"
+    - Vibe: "${vibe}"
+
+    RULES:
+    1. TITLE: [trait] [color] [style] [content] [design type]. NO product names (shirt, mug).
+    2. DESC: 3-4 sentences. Story-driven. Mention Core Subject. NO product names.
+    3. TAGS: Generate EXACTLY 15 tags. Every single word MUST be unique across all tags. NO repeated words. NO product names.
+
+    OUTPUT ONLY JSON:
+    {
+      "variants": [
+        {
+          "newTitle": "...",
+          "newDescription": "...",
+          "newTags": "tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10, tag11, tag12, tag13, tag14, tag15"
+        }
+      ]
+    }`;
+
+    let messageContent: any = imageBase64 && imageBase64.startsWith('data:image') 
+        ? [{ type: "text", text: promptText }, { type: "image_url", image_url: { url: imageBase64 } }]
+        : promptText;
+
+    // Cơ chế Auto-Fallback (Thử Gemini trước, Llama sau)
+    const modelsToTry = ["google/gemini-1.5-flash", "meta-llama/llama-3.2-11b-vision-instruct:free"];
+    let aiResponseText = null;
+    let lastError = null;
+
+    for (const modelId of modelsToTry) {
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/codespaces",
+            "X-Title": "Zazzle SEO Pro"
+          },
+          body: JSON.stringify({ model: modelId, messages: [{ role: "user", content: messageContent }], temperature: 0.7 })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.choices && data.choices.length > 0) {
+            aiResponseText = data.choices[0].message.content;
+            break; // Thành công thì thoát vòng lặp
+          }
+        } else {
+            lastError = await response.text();
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!aiResponseText) {
+      return NextResponse.json({ error: `Tất cả Model đều thất bại. Lỗi cuối: ${lastError}` }, { status: 500 });
+    }
+
+    const cleanJson = aiResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const parsedData = JSON.parse(cleanJson);
+    
+    // Đưa kết quả qua lớp Middleware Kiểm duyệt (Sanitization)
+    if (parsedData.variants) {
+        parsedData.variants = parsedData.variants.map((v: any) => sanitizeSEO(v));
+        return NextResponse.json(parsedData);
+    }
+    
+    throw new Error("JSON thiếu variants");
+  } catch (error: any) {
+    return NextResponse.json({ error: `Lỗi Hệ Thống: ${error.message}` }, { status: 500 });
+  }
+}
   try {
     const body = await request.json();
     const { 
