@@ -71,7 +71,7 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 export async function POST(request: Request) {
   try {
     // Tích hợp trực tiếp API Key của bạn
-    const apiKey = process.env.OPENROUTER_API_KEY || "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";
+    const apiKey = process.env.OPENROUTER_API_KEY || "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";
 
     const body = (await request.json()) as RequestBody;
     const { amazonItems, etsyItems, insightContext, textDesign, quantity } = body;
