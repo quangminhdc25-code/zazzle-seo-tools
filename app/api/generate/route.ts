@@ -2,20 +2,30 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-// 1. Interfaces Chuẩn TypeScript
 interface ZazzleVariant {
   newTitle: string;
   newDescription: string;
   newTags: string;
 }
 
-interface RequestBody {
-  amazonData: string;
-  etsyData: string;
-  insightContext: string;
+interface AmazonItem {
+  title: string;
+  description: string;
 }
 
-// 2. Middleware: Lọc sạch rác SEO và trùng lặp Tags (Zero-Tolerance)
+interface EtsyItem {
+  title: string;
+  tags: string;
+}
+
+interface RequestBody {
+  amazonItems: AmazonItem[];
+  etsyItems: EtsyItem[];
+  insightContext: string;
+  textDesign: string;
+  quantity: number;
+}
+
 function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
   const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
   
@@ -45,7 +55,6 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
       }
     }
 
-    // Lấy tối đa 10 tags hợp lệ
     if (isValidTag && cleanTags.length < 10) {
       words.forEach(w => seenWords.add(w.replace(/[^a-z0-9]/g, '')));
       cleanTags.push(tag);
@@ -61,65 +70,63 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
-    if (!apiKey) throw new Error("Thiếu biến môi trường GOOGLE_AI_STUDIO_API_KEY");
+    // Ưu tiên dùng API Key được cung cấp trực tiếp
+    const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY || "AIzaSyABYv-d8sorqQbIIduFLVMeZJfJXoMQlcg";
 
     const body = (await request.json()) as RequestBody;
-    const { amazonData, etsyData, insightContext } = body;
+    const { amazonItems, etsyItems, insightContext, textDesign, quantity } = body;
 
-    if (!amazonData && !etsyData && !insightContext) {
-       throw new Error("Phải cung cấp ít nhất một nguồn dữ liệu (Amazon, Etsy, hoặc Insight).");
-    }
+    const qty = Math.min(Math.max(1, quantity || 1), 5);
+
+    // Chuẩn bị dữ liệu mảng thành chuỗi Text cho AI đọc
+    const amazonDataStr = amazonItems.map((item, i) => `[Amazon Item ${i+1}]\nTitle: ${item.title}\nDescription: ${item.description}`).join('\n\n');
+    const etsyDataStr = etsyItems.map((item, i) => `[Etsy Item ${i+1}]\nTitle: ${item.title}\nTags: ${item.tags}`).join('\n\n');
 
     const promptText = `[SYSTEM]
 You are a Master-level SEO Copywriter specializing in Zazzle marketplace optimization.
-Your task is to transform raw E-commerce data and Cultural Insight into highly optimized Zazzle listings designed for search visibility, uniqueness, and emotional conversion.
+Transform raw E-commerce data and Cultural Insight into highly optimized Zazzle listings.
 
 RAW DATA INPUT:
 ---
-[AMAZON DATA (Titles/Descriptions)]: 
-${amazonData || 'None provided'}
+[TEXT ON DESIGN]: "${textDesign || 'None'}"
 ---
-[ETSY DATA (Titles/Tags)]: 
-${etsyData || 'None provided'}
+[AMAZON DATA]: 
+${amazonDataStr || 'None provided'}
+---
+[ETSY DATA]: 
+${etsyDataStr || 'None provided'}
 ---
 [CULTURAL/EMOTIONAL INSIGHT ARTICLE]: 
 ${insightContext || 'None provided'}
 ---
 
-STEP 1: DESIGN CLASSIFICATION
-Analyze the input and classify the intent into ONE:
-- "Graphic-based" → visual elements (illustration, pattern, artwork)
-- "Text-based" → quote, phrase, typography-driven design
+STEP 1: DESIGN CLASSIFICATION & KEYWORD EXTRACTION
+Extract the core subject, style, mood, and target audience from the data. 
+STRICTLY REMOVE: Brand names, sizing, materials (e.g., 100% cotton).
 
-STEP 2: KEYWORD & INSIGHT EXTRACTION
-Extract the core subject, style, mood, and target audience. 
-STRICTLY REMOVE: Brand names, sizing, materials (e.g., 100% cotton), and product SKUs.
-
-STEP 3: GENERATE HIGH-QUALITY VARIANTS
-CRITICAL: Generate EXACTLY 1 variant. It MUST be highly emotional and search intent-driven based on the Cultural Insight.
+STEP 2: GENERATE VARIANTS
+Generate EXACTLY ${qty} HIGH-QUALITY variants. Each must be meaningfully different in phrasing and emotional angle.
 
 ## 1. TITLES (SEO-CRITICAL)
-- Graphic-based structure: [primary keyword] [color] [style] [content] [audience or theme]
-- Text-based structure: [phrase/quote] [tone] [topic] [audience or theme]
-RULES: Minimum 3 words. Most important keywords first. DO NOT use keyword stuffing or special characters.
+- ABSOLUTE MANDATORY RULE: Every single title MUST begin with the exact Text on Design: "${textDesign}".
+- Structure: "${textDesign}" + [color] + [style] + [content] + [audience/theme]
+- DO NOT use keyword stuffing or special characters. DO NOT include product names.
 
 ## 2. DESCRIPTION (SEO + EMOTIONAL CONVERSION)
 - Length: 3–5 sentences.
 - Tell a story based on the cultural/emotional insight provided.
-- Suggest real-life use cases (e.g., perfect for a weekend hike, ideal for a baby shower).
-- DO NOT repeat the exact title. Make it natural and conversational.
+- Suggest real-life use cases. DO NOT repeat the exact title.
 
 ## 3. TAGS (DISCOVERABILITY ENGINE - STRICT ZERO-TOLERANCE RULES)
-- Generate EXACTLY 10 tags.
+- Generate EXACTLY 10 tags per variant.
 - Minimum 3 characters per tag. Maximum 5 words per tag.
-- ABSOLUTE ZERO-TOLERANCE RULE: Every SINGLE WORD must be unique across all 10 tags. DO NOT reuse any word, even in different phrases. (If you use "funny cat", you CANNOT use "cat mom").
+- ABSOLUTE ZERO-TOLERANCE RULE: Every SINGLE WORD must be unique across all 10 tags. DO NOT reuse any word, even in different phrases.
 
-STRICTLY FORBIDDEN KEYWORDS ACROSS ALL FIELDS (TITLE, DESC, TAGS):
+STRICTLY FORBIDDEN KEYWORDS ACROSS ALL FIELDS:
 shirt, shirts, tee, tees, apparel, clothing, accessory, mug, poster, gear, custom, create, gift, gifts, present, presents, gift idea, merchandise, personalize, personalized, customize, customized, custom made.
 
 OUTPUT FORMAT
-Output ONLY valid JSON. No explanations. No markdown.
+Output ONLY valid JSON.
 {
   "variants": [
     {
@@ -130,15 +137,12 @@ Output ONLY valid JSON. No explanations. No markdown.
   ]
 }`;
 
-    // Gọi API thế hệ mới nhất: Gemini 2.5 Pro
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
       }
     );
 
@@ -160,7 +164,7 @@ Output ONLY valid JSON. No explanations. No markdown.
     throw new Error("Cấu trúc JSON từ AI không hợp lệ.");
 
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Lỗi không xác định";
+    const message = error instanceof Error ? error.message : "Lỗi hệ thống không xác định";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
