@@ -70,7 +70,8 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY || "AIzaSyABYv-d8sorqQbIIduFLVMeZJfJXoMQlcg";
+    // Tích hợp trực tiếp API Key của bạn
+    const apiKey = process.env.OPENROUTER_API_KEY || "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";
 
     const body = (await request.json()) as RequestBody;
     const { amazonItems, etsyItems, insightContext, textDesign, quantity } = body;
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     const amazonDataStr = amazonItems.map((item, i) => `[Amazon Item ${i+1}]\nTitle: ${item.title}\nDescription: ${item.description}`).join('\n\n');
     const etsyDataStr = etsyItems.map((item, i) => `[Etsy Item ${i+1}]\nTitle: ${item.title}\nTags: ${item.tags}`).join('\n\n');
 
-    const promptText = `[SYSTEM]
+    const promptText = `
 You are a Master-level SEO Copywriter specializing in Zazzle marketplace optimization.
 Transform raw E-commerce data and Cultural Insight into highly optimized Zazzle listings.
 
@@ -110,12 +111,12 @@ Generate EXACTLY ${qty} HIGH-QUALITY variants. Each must be meaningfully differe
 - Structure: "${textDesign}" + [color] + [style] + [content] + [audience/theme]
 - DO NOT use keyword stuffing or special characters. DO NOT include product names.
 
-## 2. DESCRIPTION (SEO + EMOTIONAL CONVERSION)
+## 3. DESCRIPTION (SEO + EMOTIONAL CONVERSION)
 - Length: 3–5 sentences.
 - Tell a story based on the cultural/emotional insight provided.
 - Suggest real-life use cases. DO NOT repeat the exact title.
 
-## 3. TAGS (DISCOVERABILITY ENGINE - STRICT ZERO-TOLERANCE RULES)
+## 4. TAGS (DISCOVERABILITY ENGINE - STRICT ZERO-TOLERANCE RULES)
 - Generate EXACTLY 10 tags per variant.
 - Minimum 3 characters per tag. Maximum 5 words per tag.
 - ABSOLUTE ZERO-TOLERANCE RULE: Every SINGLE WORD must be unique across all 10 tags. DO NOT reuse any word, even in different phrases.
@@ -124,7 +125,7 @@ STRICTLY FORBIDDEN KEYWORDS ACROSS ALL FIELDS:
 shirt, shirts, tee, tees, apparel, clothing, accessory, mug, poster, gear, custom, create, gift, gifts, present, presents, gift idea, merchandise, personalize, personalized, customize, customized, custom made.
 
 OUTPUT FORMAT
-Output ONLY valid JSON.
+Output ONLY valid JSON. No markdown, no conversational text.
 {
   "variants": [
     {
@@ -135,23 +136,40 @@ Output ONLY valid JSON.
   ]
 }`;
 
-    // Nâng cấp: Đổi sang gemini-1.5-pro để có 0 lỗi 429 và sử dụng Free Tier
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-      }
-    );
+    // KIẾN TRÚC ROUTING TỰ ĐỘNG CỦA OPENROUTER (FALLBACK ARRAY)
+    const openRouterPayload = {
+      models: [
+        "openai/gpt-oss-120b", // Lựa chọn 1 của bạn (Có rủi ro không tồn tại)
+        "google/gemma-4-31b",  // Lựa chọn 2 của bạn (Có rủi ro không tồn tại)
+        "google/gemma-2-9b-it:free", // Lưới an toàn số 1 (Model Free thực tế của Google trên OpenRouter)
+        "meta-llama/llama-3.1-8b-instruct:free" // Lưới an toàn số 2 (Model Free thực tế của Meta trên OpenRouter)
+      ],
+      messages: [
+        { role: "system", content: "You are a specialized JSON-only output engine. You must output raw JSON without markdown formatting." },
+        { role: "user", content: promptText }
+      ]
+    };
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://zazzleseo.com",
+        "X-Title": "Zazzle SEO Tool"
+      },
+      body: JSON.stringify(openRouterPayload)
+    });
 
     if (!response.ok) {
       const errorData = await response.text();
-      throw new Error(`Google API Error (${response.status}): ${errorData}`);
+      throw new Error(`OpenRouter API Error (${response.status}): ${errorData}`);
     }
 
     const data = await response.json();
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const aiText = data.choices?.[0]?.message?.content || "";
+    
+    // Xử lý chuỗi JSON an toàn
     const cleanJson = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
     
     const parsedData = JSON.parse(cleanJson);
