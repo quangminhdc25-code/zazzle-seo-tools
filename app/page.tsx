@@ -16,61 +16,41 @@ const CopyButton = ({ text }: { text: string }) => {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className={`text-[10px] font-bold px-3 py-1 rounded border transition-all ${copied ? 'bg-green-500 text-white border-green-600' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'}`}>
+    <button onClick={handleCopy} className={`text-[10px] font-bold px-3 py-1 rounded border transition-all ${copied ? 'bg-green-500 text-white border-green-600' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}>
       {copied ? 'COPIED' : 'COPY'}
     </button>
   );
 };
 
 export default function ZazzleSEOTool() {
-  const [imageBase64, setImageBase64] = useState<string>('');
-  const [isDragging, setIsDragging] = useState(false);
-  const [textOnDesign, setTextOnDesign] = useState('');
-  const [etsyInput, setEtsyInput] = useState('');
-  const [coreSubject, setCoreSubject] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
-  const [vibe, setVibe] = useState('');
+  const [amazonData, setAmazonData] = useState('');
+  const [etsyData, setEtsyData] = useState('');
+  const [insightContext, setInsightContext] = useState('');
+  
   const [results, setResults] = useState<ZazzleVariant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Tự động khôi phục lịch sử từ LocalStorage
+  // Tự động khôi phục lịch sử Version 3.0
   useEffect(() => {
-    const saved = localStorage.getItem('zazzle_pro_history');
+    const saved = localStorage.getItem('zazzle_history_v3.0');
     if (saved) {
       try { setResults(JSON.parse(saved) as ZazzleVariant[]); } catch (e) { console.error("Lỗi parse lịch sử"); }
     }
   }, []);
 
-  const processImage = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        let width = img.width, height = img.height;
-        if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        setImageBase64(canvas.toDataURL('image/jpeg', 0.8));
-      };
-      if (typeof reader.result === 'string') img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!coreSubject) return setError('Hãy nhập Core Subject.');
+    if (!amazonData && !etsyData && !insightContext) {
+        return setError('Hãy nhập ít nhất một trường dữ liệu (Amazon, Etsy hoặc Insight).');
+    }
     setLoading(true); setError('');
 
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64, textOnDesign, etsyInput, coreSubject, targetAudience, vibe }),
+        body: JSON.stringify({ amazonData, etsyData, insightContext }),
       });
 
       const data = await response.json();
@@ -79,64 +59,75 @@ export default function ZazzleSEOTool() {
       if (data.variants) {
         const newHistory = [...data.variants, ...results].slice(0, 50);
         setResults(newHistory);
-        localStorage.setItem('zazzle_pro_history', JSON.stringify(newHistory));
+        localStorage.setItem('zazzle_history_v3.0', JSON.stringify(newHistory));
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi');
+      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi hệ thống');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 font-sans bg-slate-50 min-h-screen text-slate-900">
-      <header className="mb-8 text-center">
+    <div className="max-w-5xl mx-auto p-6 font-sans bg-slate-50 min-h-screen text-slate-900">
+      <header className="mb-10 text-center">
         <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
-          ZAZZLE SEO <span className="text-blue-600">ARCHITECT</span>
+          ZAZZLE SEO <span className="text-emerald-600">NLP ARCHITECT</span>
         </h1>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">Enterprise Edition v2.1 Strict</p>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-2">
+          Ver 3.0 • Powered by Gemini 2.5 Pro
+        </p>
       </header>
 
       <form onSubmit={handleGenerate} className="bg-white rounded-[2rem] shadow-2xl p-8 mb-12 border border-slate-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div 
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
-            onDrop={(e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files?.[0]) processImage(e.dataTransfer.files[0]); }}
-            className={`p-10 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center transition-all ${isDragging ? 'bg-blue-50 border-blue-600 scale-[1.02]' : 'bg-slate-50 border-slate-200'}`}
-          >
-            <label className="cursor-pointer bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold text-xs hover:scale-105 transition-transform shadow-lg">
-              CHỌN HOẶC KÉO ẢNH
-              <input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) processImage(e.target.files[0]); }} className="hidden" />
-            </label>
-            {imageBase64 && <img src={imageBase64} alt="Preview" className="mt-6 h-28 w-28 object-contain rounded-2xl border-4 border-white shadow-xl bg-white" />}
-          </div>
-
-          <div className="flex flex-col space-y-4">
-            <div className="flex-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Text on Design</label>
-              <textarea placeholder="Gõ chính xác chữ trên thiết kế..." className="w-full h-32 p-4 border border-slate-200 rounded-2xl bg-slate-50 focus:ring-4 focus:ring-blue-100 outline-none text-sm transition-all" value={textOnDesign} onChange={(e) => setTextOnDesign(e.target.value)} />
-            </div>
-          </div>
-        </div>
-
+        
+        {/* Khối Data Insight Mạng */}
         <div className="mb-8">
-          <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Etsy Inspiration (URL or Keywords)</label>
-          <input type="text" placeholder="Dán link sản phẩm Etsy hoặc từ khóa đối thủ..." className="w-full p-4 border border-slate-200 rounded-2xl bg-slate-50 focus:ring-4 focus:ring-blue-100 outline-none text-sm shadow-inner" value={etsyInput} onChange={(e) => setEtsyInput(e.target.value)} />
+          <label className="flex items-center gap-2 text-sm font-black text-emerald-800 uppercase mb-3">
+            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded">1</span> Insight Context / Bài viết nền
+          </label>
+          <textarea 
+            placeholder="Dán nội dung bài blog, bài viết văn hóa, hoặc mô tả chi tiết ý nghĩa của thiết kế vào đây để AI tạo Storytelling Description..." 
+            className="w-full h-40 p-5 border border-slate-200 rounded-2xl bg-slate-50 focus:ring-4 focus:ring-emerald-100 outline-none text-sm transition-all shadow-inner leading-relaxed" 
+            value={insightContext} 
+            onChange={(e) => setInsightContext(e.target.value)} 
+          />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 p-6 bg-slate-900 rounded-3xl">
-          <input type="text" placeholder="Core Subject *" className="p-3 border-none rounded-xl bg-slate-800 text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={coreSubject} onChange={(e) => setCoreSubject(e.target.value)} required />
-          <input type="text" placeholder="Audience" className="p-3 border-none rounded-xl bg-slate-800 text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} />
-          <input type="text" placeholder="Vibe" className="p-3 border-none rounded-xl bg-slate-800 text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={vibe} onChange={(e) => setVibe(e.target.value)} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {/* Khối Amazon Data */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-black text-orange-600 uppercase mb-3">
+              <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">2</span> Amazon Data
+            </label>
+            <textarea 
+              placeholder="Dán nhiều Title và Description của các đối thủ trên Amazon vào đây..." 
+              className="w-full h-48 p-4 border border-slate-200 rounded-2xl bg-slate-50 focus:ring-4 focus:ring-orange-100 outline-none text-sm transition-all shadow-inner" 
+              value={amazonData} 
+              onChange={(e) => setAmazonData(e.target.value)} 
+            />
+          </div>
+
+          {/* Khối Etsy Data */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-black text-orange-500 uppercase mb-3">
+              <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded">3</span> Etsy Data
+            </label>
+            <textarea 
+              placeholder="Dán nhiều Title và Tags của các đối thủ trên Etsy vào đây..." 
+              className="w-full h-48 p-4 border border-slate-200 rounded-2xl bg-slate-50 focus:ring-4 focus:ring-orange-100 outline-none text-sm transition-all shadow-inner" 
+              value={etsyData} 
+              onChange={(e) => setEtsyData(e.target.value)} 
+            />
+          </div>
         </div>
 
-        <button type="submit" disabled={loading} className={`w-full py-5 rounded-3xl font-black text-white tracking-widest shadow-2xl transition-all ${loading ? 'bg-slate-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98]'}`}>
-          {loading ? 'ANALYZING DESIGN...' : 'GENERATE SEO CONTENT'}
+        <button type="submit" disabled={loading} className={`w-full py-5 rounded-3xl font-black text-white tracking-widest shadow-xl transition-all ${loading ? 'bg-slate-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98]'}`}>
+          {loading ? 'ĐANG TỔNG HỢP NGỮ NGHĨA (GEMINI 2.5 PRO)...' : 'PHÂN TÍCH DATA & TẠO SEO'}
         </button>
       </form>
 
-      {error && <div className="bg-red-500 text-white p-4 rounded-2xl mb-12 font-bold text-center text-sm shadow-xl animate-bounce">{error}</div>}
+      {error && <div className="bg-red-500 text-white p-4 rounded-2xl mb-12 font-bold text-center text-sm shadow-xl animate-pulse">{error}</div>}
 
       <div className="space-y-8">
         {results.map((variant, idx) => (
@@ -144,22 +135,22 @@ export default function ZazzleSEOTool() {
             <div className="p-8 space-y-6">
               <div className="flex justify-between items-start gap-6">
                 <div className="flex-1">
-                  <span className="text-[10px] font-black text-slate-300 uppercase block mb-2">Title</span>
-                  <p className="text-lg font-black text-slate-900 leading-tight">{variant.newTitle}</p>
+                  <span className="text-[10px] font-black text-emerald-600 uppercase block mb-2 bg-emerald-50 inline-block px-2 py-1 rounded">Optimized Title</span>
+                  <p className="text-xl font-black text-slate-900 leading-tight">{variant.newTitle}</p>
                 </div>
                 <CopyButton text={variant.newTitle} />
               </div>
               <div className="flex justify-between items-start gap-6 border-t border-slate-50 pt-6">
                 <div className="flex-1">
-                  <span className="text-[10px] font-black text-slate-300 uppercase block mb-2">Description</span>
+                  <span className="text-[10px] font-black text-emerald-600 uppercase block mb-2 bg-emerald-50 inline-block px-2 py-1 rounded">Storytelling Description</span>
                   <p className="text-sm leading-relaxed text-slate-600 font-medium">{variant.newDescription}</p>
                 </div>
                 <CopyButton text={variant.newDescription} />
               </div>
-              <div className="bg-blue-50 p-6 rounded-3xl flex justify-between items-center gap-6 border border-blue-100">
+              <div className="bg-slate-900 p-6 rounded-3xl flex justify-between items-center gap-6 border border-slate-800 shadow-inner">
                 <div className="flex-1">
-                  <span className="text-[10px] font-black text-blue-300 uppercase block mb-2">Unique Tags</span>
-                  <p className="text-xs font-mono font-black text-blue-900 tracking-tight">{variant.newTags}</p>
+                  <span className="text-[10px] font-black text-emerald-400 uppercase block mb-2">Unique SEO Tags (Max 10)</span>
+                  <p className="text-xs font-mono font-black text-white tracking-wide leading-relaxed">{variant.newTags}</p>
                 </div>
                 <CopyButton text={variant.newTags} />
               </div>
