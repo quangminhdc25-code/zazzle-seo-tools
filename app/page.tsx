@@ -166,7 +166,7 @@ export default function Ver18Tool() {
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md shadow-blue-500/20">ZA</div>
             <div>
               <h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1>
-              <p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 18.1 • Minimalist UX</p>
+              <p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 18.2 • Fluid UX</p>
             </div>
           </div>
           <button 
@@ -186,7 +186,7 @@ export default function Ver18Tool() {
           <div className="hidden sm:block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Trạng thái</div>
         </div>
 
-        <div className="flex flex-col xl:flex-row gap-5">
+        <div className="flex flex-col xl:flex-row gap-5 items-stretch">
           
           {/* CỘT INPUT */}
           <form onSubmit={submit} className="flex-1 w-full xl:w-[40%] flex flex-col gap-5">
@@ -200,11 +200,11 @@ export default function Ver18Tool() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Prefix Design</label>
-                  <input type="text" className="w-full rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-400 transition-all placeholder-slate-400" value={textDesign} onChange={e => setTextDesign(e.target.value)} placeholder="e.g. Retro Cat Mama" />
+                  <input type="text" className="w-full rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400" value={textDesign} onChange={e => setTextDesign(e.target.value)} placeholder="e.g. Retro Cat Mama" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Insight context</label>
-                  <textarea className="w-full h-20 rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-all resize-none placeholder-slate-400" value={insight} onChange={e => setInsight(e.target.value)} placeholder="Blog details..." />
+                  <textarea className="w-full min-h-[80px] rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-colors resize-y placeholder-slate-400" value={insight} onChange={e => setInsight(e.target.value)} placeholder="Blog details... (Kéo góc phải để mở rộng)" />
                 </div>
               </div>
             </div>
@@ -221,8 +221,8 @@ export default function Ver18Tool() {
                   {amzItems.map((item, i) => (
                     <div key={i} className="bg-white/70 dark:bg-[#1c1c1e]/50 rounded-xl p-4 border border-slate-200/50 dark:border-white/5 shadow-sm">
                       <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Amazon Product #{i+1}</div>
-                      <input className="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 pb-1.5 text-sm font-semibold outline-none focus:border-blue-500 transition-all placeholder-slate-400" value={item.title} onChange={e => { const n = [...amzItems]; n[i].title = e.target.value; setAmzItems(n); }} placeholder="Title" />
-                      <textarea className="w-full bg-transparent text-sm font-medium outline-none h-12 mt-2 resize-none placeholder-slate-400" value={item.description} onChange={e => { const n = [...amzItems]; n[i].description = e.target.value; setAmzItems(n); }} placeholder="Description" />
+                      <input className="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 pb-1.5 text-sm font-semibold outline-none focus:border-blue-500 transition-colors placeholder-slate-400" value={item.title} onChange={e => { const n = [...amzItems]; n[i].title = e.target.value; setAmzItems(n); }} placeholder="Title" />
+                      <textarea className="w-full bg-transparent text-sm font-medium outline-none min-h-[60px] mt-2 resize-y placeholder-slate-400" value={item.description} onChange={e => { const n = [...amzItems]; n[i].description = e.target.value; setAmzItems(n); }} placeholder="Description (Kéo góc phải để mở rộng)" />
                     </div>
                   ))}
                 </div>
@@ -238,7 +238,7 @@ export default function Ver18Tool() {
                   {etsyItems.map((item, i) => (
                     <div key={i} className="bg-white/70 dark:bg-[#1c1c1e]/50 rounded-xl p-4 border border-slate-200/50 dark:border-white/5 shadow-sm">
                       <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Etsy Product #{i+1}</div>
-                      <input className="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 pb-1.5 text-sm font-semibold outline-none focus:border-blue-500 transition-all placeholder-slate-400" value={item.title} onChange={e => { const n = [...etsyItems]; n[i].title = e.target.value; setEtsyItems(n); }} placeholder="Title" />
+                      <input className="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 pb-1.5 text-sm font-semibold outline-none focus:border-blue-500 transition-colors placeholder-slate-400" value={item.title} onChange={e => { const n = [...etsyItems]; n[i].title = e.target.value; setEtsyItems(n); }} placeholder="Title" />
                       <input className="w-full bg-transparent text-sm font-medium outline-none mt-2 placeholder-slate-400" value={item.tags} onChange={e => { const n = [...etsyItems]; n[i].tags = e.target.value; setEtsyItems(n); }} placeholder="Tags (comma separated)" />
                     </div>
                   ))}
@@ -253,7 +253,7 @@ export default function Ver18Tool() {
           </form>
 
           {/* CỘT KẾT QUẢ */}
-          <div className="flex-1 w-full xl:w-[60%] xl:h-[calc(100vh-140px)] flex flex-col">
+          <div className="flex-1 w-full xl:w-[60%] flex flex-col h-full">
             <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 h-full flex flex-col">
               
               <div className="flex justify-between items-center mb-5 pb-4 border-b border-slate-200/50 dark:border-slate-700">
@@ -266,9 +266,9 @@ export default function Ver18Tool() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-5 pb-8">
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-5">
                 {results.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white/30 dark:bg-[#1c1c1e]/30 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+                  <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-slate-400 bg-white/30 dark:bg-[#1c1c1e]/30 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
                     <AppleIcon />
                     <p className="mt-3 font-semibold text-xs uppercase tracking-widest">Chưa có dữ liệu</p>
                   </div>
@@ -298,7 +298,7 @@ export default function Ver18Tool() {
                               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Description</span>
                               <CopyBtn text={v.newDescription} />
                             </div>
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed italic">"{v.newDescription}"</p>
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed italic">{v.newDescription}</p>
                           </div>
 
                           <div className="bg-slate-50/80 dark:bg-[#2c2c2e]/60 p-4 rounded-xl border border-slate-100 dark:border-white/5">
