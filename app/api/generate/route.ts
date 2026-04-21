@@ -19,6 +19,7 @@ interface RequestBody {
   quantity: number;
 }
 
+// Logic rà soát SEO dứt điểm
 function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
   const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
   
@@ -64,7 +65,7 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) throw new Error("Lỗi Bảo mật: Thiếu biến môi trường GROQ_API_KEY trên máy chủ Vercel.");
+    if (!apiKey) throw new Error("Security Error: Missing GROQ_API_KEY.");
 
     const body = (await request.json()) as RequestBody;
     const { amazonItems, etsyItems, insightContext, textDesign, quantity } = body;
@@ -74,36 +75,29 @@ export async function POST(request: Request) {
     const etsyDataStr = etsyItems.map((item, i) => `[Etsy ${i+1}] Title: ${item.title}\nTags: ${item.tags}`).join('\n\n');
 
     const promptText = `
-You are a Master-level Zazzle SEO Expert. Create optimized listings using provided data.
+You are a Master-level Zazzle SEO Expert.
+Transform raw data into optimized listings.
 
 INPUT:
-- Text Design (MUST be at the start of Title): "${textDesign}"
+- Text Design (MUST START THE TITLE): "${textDesign}"
 - Amazon Data: ${amazonDataStr}
 - Etsy Data: ${etsyDataStr}
 - Insight: ${insightContext}
 
 RULES:
-1. TITLE: MUST start with "${textDesign}". Structure: "${textDesign}" + [color/style] + [subject] + [audience]. 
-2. DESCRIPTION: 3-5 sentences storytelling. No product types (shirt/mug).
-3. TAGS: 10 tags per variant. ABSOLUTE rule: NO REPEATED WORDS across all 10 tags. 
+1. TITLE: Starts with "${textDesign}". No keyword stuffing.
+2. DESCRIPTION: 3-5 sentences storytelling.
+3. TAGS: 10 tags per variant. ABSOLUTELY UNIQUE WORDS across all tags.
 
-FORBIDDEN: shirt, tee, clothing, gift, custom, personalize.
+FORBIDDEN: shirt, tee, clothing, mug, custom, personalize.
 
-OUTPUT EXACTLY ${qty} VARIANTS. YOU MUST RETURN ONLY VALID JSON MATCHING THIS EXACT SCHEMA:
-{
-  "variants": [
-    {
-      "newTitle": "string",
-      "newDescription": "string",
-      "newTags": "tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10"
-    }
-  ]
-}`;
+OUTPUT JSON:
+{ "variants": [ { "newTitle": "...", "newDescription": "...", "newTags": "..." } ] }`;
 
     const payload = {
       model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: "You are a JSON-only API. You output JSON format only." },
+        { role: "system", content: "You are a JSON-only engine." },
         { role: "user", content: promptText }
       ],
       response_format: { type: "json_object" },
@@ -132,7 +126,7 @@ OUTPUT EXACTLY ${qty} VARIANTS. YOU MUST RETURN ONLY VALID JSON MATCHING THIS EX
       parsed.variants = parsed.variants.slice(0, qty).map((v: ZazzleVariant) => sanitizeSEO(v));
       return NextResponse.json(parsed);
     }
-    throw new Error("Invalid AI Output format");
+    throw new Error("Invalid format");
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

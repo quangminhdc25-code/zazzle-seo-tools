@@ -12,10 +12,10 @@ const CopyBtn = ({ text }: { text: string }) => {
   return (
     <button 
       onClick={copy} 
-      className={`text-[12px] font-medium px-4 py-1.5 rounded-[8px] transition-all duration-200 shadow-sm border ${
+      className={`text-[11px] font-semibold px-4 py-1.5 rounded-md transition-all duration-200 border ${
         ok 
-        ? 'bg-[#005FB8] border-[#005FB8] text-white shadow-[#005FB8]/20' 
-        : 'bg-white/80 border-gray-200/60 text-gray-700 hover:bg-white hover:shadow-md'
+        ? 'bg-[#005FB8] border-[#005FB8] text-white' 
+        : 'bg-white dark:bg-[#2c2c2c] border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#323232]'
       }`}
     >
       {ok ? 'Copied' : 'Copy'}
@@ -23,7 +23,8 @@ const CopyBtn = ({ text }: { text: string }) => {
   );
 };
 
-export default function Ver11Tool() {
+export default function Ver12Tool() {
+  const [darkMode, setDarkMode] = useState(false);
   const [textDesign, setTextDesign] = useState('');
   const [insight, setInsight] = useState('');
   const [qty, setQty] = useState(1);
@@ -34,33 +35,42 @@ export default function Ver11Tool() {
   const [results, setResults] = useState<ZazzleVariant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [filterIndex, setFilterIndex] = useState<number | 'all'>('all');
 
   useEffect(() => {
-    const saved = localStorage.getItem('zazzle_v11.0');
+    const saved = localStorage.getItem('zazzle_v12.0');
     if (saved) setResults(JSON.parse(saved));
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') setDarkMode(true);
   }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !darkMode;
+    setDarkMode(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
 
   const handleAmzCount = (n: number) => {
     setAmzCount(n);
     setAmzItems(prev => {
-        const next = [...prev];
-        while(next.length < n) next.push({ title: '', description: '' });
-        return next.slice(0, n);
+      const next = [...prev];
+      while(next.length < n) next.push({ title: '', description: '' });
+      return next.slice(0, n);
     });
   };
 
   const handleEtsyCount = (n: number) => {
     setEtsyCount(n);
     setEtsyItems(prev => {
-        const next = [...prev];
-        while(next.length < n) next.push({ title: '', tags: '' });
-        return next.slice(0, n);
+      const next = [...prev];
+      while(next.length < n) next.push({ title: '', tags: '' });
+      return next.slice(0, n);
     });
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!textDesign) return setError('Vui lòng nhập Text Design Prefix.');
+    if (!textDesign) return setError('Vui lòng nhập Text Design.');
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/generate', {
@@ -72,161 +82,167 @@ export default function Ver11Tool() {
       if (!res.ok) throw new Error(data.error);
       const newResults = [...data.variants, ...results].slice(0, 50);
       setResults(newResults);
-      localStorage.setItem('zazzle_v11.0', JSON.stringify(newResults));
+      setFilterIndex('all');
+      localStorage.setItem('zazzle_v12.0', JSON.stringify(newResults));
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
 
-  const clearHistory = () => {
-    if(confirm('Bạn có chắc chắn muốn xóa lịch sử?')) { setResults([]); localStorage.removeItem('zazzle_v11.0'); }
-  }
-
   return (
-    <div className="w-full min-h-screen font-[Segoe_UI,system-ui,sans-serif] text-gray-900 bg-gradient-to-br from-[#e4ecfa] via-[#f4f5f7] to-[#eaf2fb] p-6 lg:p-8 selection:bg-[#005FB8]/20 selection:text-[#005FB8]">
-      
-      {/* HEADER */}
-      <header className="mb-8 px-2">
-        <h1 className="text-[28px] font-semibold tracking-tight text-gray-900 mb-1">
-          Zazzle SEO Architect
-        </h1>
-        <p className="text-[13px] font-medium text-gray-500">
-          Version 11.0 • Windows 11 Fluent Mica
-        </p>
-      </header>
-
-      <div className="flex flex-col xl:flex-row gap-6 max-w-[1600px]">
+    <div className={`${darkMode ? 'dark bg-[#1c1c1c]' : 'bg-[#f3f3f3]'} w-full min-h-screen font-sans transition-colors duration-300`}>
+      <div className="max-w-[1200px] mx-auto p-6 lg:p-10 space-y-8">
         
-        {/* INPUT COLUMN */}
-        <form onSubmit={submit} className="flex-1 space-y-6">
+        {/* HEADER & THEME TOGGLE */}
+        <header className="flex justify-between items-center px-2">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Zazzle SEO Architect</h1>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Ver 12.0 • Windows 11 Vertical Fluent</p>
+          </div>
+          <button 
+            onClick={toggleTheme}
+            className="p-2.5 rounded-lg bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-[#323232] transition-all"
+          >
+            {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
+        </header>
+
+        {/* INPUT FORM */}
+        <form onSubmit={submit} className="space-y-6">
           
-          {/* GENERAL INFO (GLASS PANEL) */}
-          <div className="p-6 rounded-[12px] bg-white/60 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] transition-all">
-            <h2 className="text-[16px] font-semibold mb-5 text-gray-800">General Parameters</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
+          {/* GENERAL PARAMETERS (LIGHT GREEN) */}
+          <div className="p-8 rounded-xl bg-[#f0fdf4] dark:bg-[#142a1a] border border-[#dcfce7] dark:border-[#1e3a24] shadow-sm">
+            <h2 className="text-base font-bold mb-6 text-[#166534] dark:text-[#4ade80] uppercase tracking-wider">General Parameters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="text-[13px] font-medium text-gray-600 block mb-2">Text Design Prefix</label>
-                <input type="text" className="w-full p-2.5 rounded-[8px] bg-white/80 border border-gray-200/60 text-[14px] text-gray-800 outline-none focus:bg-white focus:border-[#005FB8] focus:ring-2 focus:ring-[#005FB8]/20 transition-all shadow-sm hover:bg-white" value={textDesign} onChange={e => setTextDesign(e.target.value)} placeholder="e.g. Retro Cat Mama" />
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2 uppercase">Text Design Prefix</label>
+                <input type="text" className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#242424] text-sm focus:ring-2 focus:ring-[#005FB8] outline-none" value={textDesign} onChange={e => setTextDesign(e.target.value)} placeholder="e.g. Vintage Cat Mom" />
               </div>
               <div>
-                <label className="text-[13px] font-medium text-gray-600 block mb-2">Variants Output</label>
-                <select className="w-full p-2.5 rounded-[8px] bg-white/80 border border-gray-200/60 text-[14px] text-gray-800 outline-none focus:bg-white focus:border-[#005FB8] focus:ring-2 focus:ring-[#005FB8]/20 transition-all shadow-sm cursor-pointer hover:bg-white" value={qty} onChange={e => setQty(Number(e.target.value))}>
-                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} Options</option>)}
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2 uppercase">Quantity</label>
+                <select className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#242424] text-sm focus:ring-2 focus:ring-[#005FB8] outline-none cursor-pointer" value={qty} onChange={e => setQty(Number(e.target.value))}>
+                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} Variants</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="text-[13px] font-medium text-gray-600 block mb-2">Insight Context</label>
-              <textarea className="w-full h-24 p-3 rounded-[8px] bg-white/80 border border-gray-200/60 text-[14px] text-gray-800 outline-none focus:bg-white focus:border-[#005FB8] focus:ring-2 focus:ring-[#005FB8]/20 transition-all shadow-sm resize-none hover:bg-white" value={insight} onChange={e => setInsight(e.target.value)} placeholder="Paste cultural background or storytelling context..." />
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2 uppercase">Insight Context</label>
+              <textarea className="w-full h-28 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#242424] text-sm focus:ring-2 focus:ring-[#005FB8] outline-none resize-none" value={insight} onChange={e => setInsight(e.target.value)} placeholder="Storytelling context..." />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* AMAZON DATA (GLASS PANEL) */}
-            <div className="p-6 rounded-[12px] bg-white/60 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] flex flex-col max-h-[520px]">
-               <div className="flex justify-between items-center mb-5">
-                  <h2 className="text-[16px] font-semibold text-gray-800">Amazon Data</h2>
-                  <select className="text-[13px] py-1.5 px-3 rounded-[8px] border border-gray-200/60 bg-white/80 hover:bg-white text-gray-800 outline-none cursor-pointer focus:border-[#005FB8] transition-all shadow-sm" value={amzCount} onChange={e => handleAmzCount(Number(e.target.value))}>
-                    {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n} Items</option>)}
-                  </select>
-               </div>
-               <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                  {amzItems.map((item, i) => (
-                    <div key={i} className="flex flex-col gap-3 p-4 rounded-[8px] bg-white/50 border border-white shadow-sm transition-all hover:bg-white/80 hover:shadow-md">
-                      <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Product {i+1}</div>
-                      <input className="w-full text-[13px] bg-transparent border-b border-gray-200 pb-2 outline-none focus:border-[#005FB8] transition-colors placeholder-gray-400" placeholder="Title" value={item.title} onChange={e => { const n = [...amzItems]; n[i].title = e.target.value; setAmzItems(n); }} />
-                      <textarea className="w-full h-16 text-[13px] bg-transparent outline-none resize-none focus:border-[#005FB8] transition-colors placeholder-gray-400" placeholder="Description" value={item.description} onChange={e => { const n = [...amzItems]; n[i].description = e.target.value; setAmzItems(n); }} />
-                    </div>
-                  ))}
-               </div>
+          {/* AMAZON DATA (FULL WIDTH) */}
+          <div className="p-8 rounded-xl bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-base font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Amazon Data</h2>
+              <select className="text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#242424] cursor-pointer" value={amzCount} onChange={e => handleAmzCount(Number(e.target.value))}>
+                {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n} Products</option>)}
+              </select>
             </div>
-
-            {/* ETSY DATA (GLASS PANEL) */}
-            <div className="p-6 rounded-[12px] bg-white/60 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] flex flex-col max-h-[520px]">
-               <div className="flex justify-between items-center mb-5">
-                  <h2 className="text-[16px] font-semibold text-gray-800">Etsy Data</h2>
-                  <select className="text-[13px] py-1.5 px-3 rounded-[8px] border border-gray-200/60 bg-white/80 hover:bg-white text-gray-800 outline-none cursor-pointer focus:border-[#005FB8] transition-all shadow-sm" value={etsyCount} onChange={e => handleEtsyCount(Number(e.target.value))}>
-                    {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n} Items</option>)}
-                  </select>
-               </div>
-               <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                  {etsyItems.map((item, i) => (
-                    <div key={i} className="flex flex-col gap-3 p-4 rounded-[8px] bg-white/50 border border-white shadow-sm transition-all hover:bg-white/80 hover:shadow-md">
-                      <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Product {i+1}</div>
-                      <input className="w-full text-[13px] bg-transparent border-b border-gray-200 pb-2 outline-none focus:border-[#005FB8] transition-colors placeholder-gray-400" placeholder="Title" value={item.title} onChange={e => { const n = [...etsyItems]; n[i].title = e.target.value; setEtsyItems(n); }} />
-                      <input className="w-full text-[13px] bg-transparent outline-none focus:border-[#005FB8] transition-colors placeholder-gray-400" placeholder="Tags (comma separated)" value={item.tags} onChange={e => { const n = [...etsyItems]; n[i].tags = e.target.value; setEtsyItems(n); }} />
-                    </div>
-                  ))}
-               </div>
-            </div>
-          </div>
-
-          <button type="submit" disabled={loading} className={`w-full py-3.5 rounded-[8px] font-semibold text-[14px] text-white transition-all duration-200 shadow-md ${loading ? 'bg-[#005FB8]/70 cursor-wait' : 'bg-[#005FB8] hover:bg-[#1975C5] active:scale-[0.98]'}`}>
-            {loading ? 'Processing through Groq...' : 'Generate Listing'}
-          </button>
-          
-          {error && <div className="p-3 rounded-[8px] bg-red-50/80 backdrop-blur-md border border-red-200 text-red-600 text-[13px] font-medium shadow-sm">{error}</div>}
-        </form>
-
-        {/* OUTPUT COLUMN */}
-        <div className="flex-1">
-          <div className="p-6 rounded-[12px] bg-white/60 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] h-[calc(100vh-140px)] flex flex-col">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200/60">
-               <h2 className="text-[18px] font-semibold text-gray-800">Output History</h2>
-               {results.length > 0 && <button onClick={clearHistory} className="text-[13px] font-medium text-[#005FB8] hover:underline transition-all">Clear All</button>}
-            </div>
-            
-            <div className="space-y-6 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
-              {results.length === 0 && (
-                <div className="h-full flex items-center justify-center text-gray-400 text-[14px] font-medium">
-                  No listings generated yet.
-                </div>
-              )}
-              
-              {results.map((v, i) => (
-                <div key={i} className="p-6 rounded-[12px] bg-white/70 border border-white shadow-sm relative group hover:shadow-md transition-all duration-200">
-                  {i === 0 && <div className="absolute top-5 right-5 bg-[#005FB8] text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-[4px] shadow-sm">NEW</div>}
-                  
-                  <div className="space-y-5 mt-1">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Title</span>
-                        <CopyBtn text={v.newTitle} />
-                      </div>
-                      <p className="text-[16px] font-semibold text-gray-900 pr-14 leading-snug">{v.newTitle}</p>
-                    </div>
-
-                    <div className="h-[1px] w-full bg-gray-200/60"></div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Description</span>
-                        <CopyBtn text={v.newDescription} />
-                      </div>
-                      <p className="text-[14px] text-gray-700 leading-relaxed bg-white/50 p-4 rounded-[8px] border border-gray-100">
-                        {v.newDescription}
-                      </p>
-                    </div>
-
-                    <div className="h-[1px] w-full bg-gray-200/60"></div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Tags (10 Unique)</span>
-                        <CopyBtn text={v.newTags} />
-                      </div>
-                      <div className="p-4 bg-white/50 border border-gray-100 rounded-[8px]">
-                        <p className="text-[13px] font-mono text-[#005FB8] leading-relaxed break-words">
-                          {v.newTags}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            <div className="space-y-4">
+              {amzItems.map((item, i) => (
+                <div key={i} className="p-4 rounded-lg bg-gray-50 dark:bg-[#242424] border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Amazon Item #{i+1}</span>
+                  <input className="w-full p-2 bg-transparent border-b border-gray-200 dark:border-gray-700 text-sm outline-none" placeholder="Product Title" value={item.title} onChange={e => { const n = [...amzItems]; n[i].title = e.target.value; setAmzItems(n); }} />
+                  <textarea className="w-full h-16 p-2 bg-transparent text-sm outline-none resize-none" placeholder="Product Description" value={item.description} onChange={e => { const n = [...amzItems]; n[i].description = e.target.value; setAmzItems(n); }} />
                 </div>
               ))}
             </div>
           </div>
-        </div>
+
+          {/* ETSY DATA (FULL WIDTH) */}
+          <div className="p-8 rounded-xl bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-base font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Etsy Data</h2>
+              <select className="text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#242424] cursor-pointer" value={etsyCount} onChange={e => handleEtsyCount(Number(e.target.value))}>
+                {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n} Products</option>)}
+              </select>
+            </div>
+            <div className="space-y-4">
+              {etsyItems.map((item, i) => (
+                <div key={i} className="p-4 rounded-lg bg-gray-50 dark:bg-[#242424] border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Etsy Item #{i+1}</span>
+                  <input className="w-full p-2 bg-transparent border-b border-gray-200 dark:border-gray-700 text-sm outline-none" placeholder="Product Title" value={item.title} onChange={e => { const n = [...etsyItems]; n[i].title = e.target.value; setEtsyItems(n); }} />
+                  <input className="w-full p-2 bg-transparent text-sm outline-none" placeholder="Tags (comma separated)" value={item.tags} onChange={e => { const n = [...etsyItems]; n[i].tags = e.target.value; setEtsyItems(n); }} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button type="submit" disabled={loading} className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all ${loading ? 'bg-gray-400' : 'bg-[#005FB8] hover:bg-[#006bd1] active:scale-[0.99]'}`}>
+            {loading ? 'Processing via Groq Engine...' : 'Generate SEO Variants'}
+          </button>
+          {error && <p className="text-center text-red-500 font-bold text-sm bg-red-50 p-4 rounded-lg">{error}</p>}
+        </form>
+
+        {/* RESULTS SECTION */}
+        <section className="space-y-6 pb-20">
+          <div className="flex justify-between items-center px-2">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">History Results</h2>
+            <div className="flex items-center gap-4">
+              {results.length > 0 && (
+                <>
+                  <select 
+                    className="p-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2c2c2c] cursor-pointer"
+                    value={filterIndex}
+                    onChange={(e) => setFilterIndex(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  >
+                    <option value="all">Show All Results</option>
+                    {results.map((_, idx) => <option key={idx} value={idx}>Result #{results.length - idx}</option>)}
+                  </select>
+                  <button onClick={() => {if(confirm('Clear history?')){setResults([]); localStorage.removeItem('zazzle_v12.0');}}} className="text-xs text-red-500 hover:underline">Clear</button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            {results.length === 0 ? (
+              <div className="py-20 text-center text-gray-400 bg-gray-50/50 dark:bg-[#2c2c2c]/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">No results to display.</div>
+            ) : (
+              results.map((v, i) => {
+                // Logic lọc theo Dropbox
+                if (filterIndex !== 'all' && filterIndex !== i) return null;
+                
+                return (
+                  <div key={i} className="p-8 rounded-2xl bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-[#005FB8]"></div>
+                    <div className="flex justify-between items-start mb-6">
+                      <span className="text-xl font-black text-[#005FB8] dark:text-[#4facfe] bg-gray-50 dark:bg-[#242424] px-4 py-2 rounded-lg">#{results.length - i}</span>
+                      {i === 0 && <span className="text-[10px] font-bold bg-[#005FB8] text-white px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Latest</span>}
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="group">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">Zazzle Title</label>
+                          <CopyBtn text={v.newTitle} />
+                        </div>
+                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{v.newTitle}</p>
+                      </div>
+
+                      <div className="group">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">Description</label>
+                          <CopyBtn text={v.newDescription} />
+                        </div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300 leading-relaxed bg-gray-50 dark:bg-[#242424] p-4 rounded-xl italic">"{v.newDescription}"</p>
+                      </div>
+
+                      <div className="group">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">SEO Tags (Unique)</label>
+                          <CopyBtn text={v.newTags} />
+                        </div>
+                        <p className="text-xs font-mono font-bold text-[#005FB8] dark:text-[#4facfe] tracking-wider break-words">{v.newTags}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
       </div>
     </div>
   );
