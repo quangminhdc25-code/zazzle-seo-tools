@@ -8,15 +8,8 @@ interface ZazzleVariant {
   newTags: string;
 }
 
-interface AmazonItem {
-  title: string;
-  description: string;
-}
-
-interface EtsyItem {
-  title: string;
-  tags: string;
-}
+interface AmazonItem { title: string; description: string; }
+interface EtsyItem { title: string; tags: string; }
 
 interface RequestBody {
   amazonItems: AmazonItem[];
@@ -26,6 +19,7 @@ interface RequestBody {
   quantity: number;
 }
 
+// Middleware rà soát luật Zazzle (Zero-Tolerance)
 function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
   const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
   
@@ -70,84 +64,48 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 
 export async function POST(request: Request) {
   try {
-    // Tích hợp trực tiếp API Key của bạn
-    const apiKey = process.env.OPENROUTER_API_KEY || "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";
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("Thiếu biến môi trường OPENROUTER_API_KEY");
 
     const body = (await request.json()) as RequestBody;
     const { amazonItems, etsyItems, insightContext, textDesign, quantity } = body;
 
     const qty = Math.min(Math.max(1, quantity || 1), 5);
-
-    const amazonDataStr = amazonItems.map((item, i) => `[Amazon Item ${i+1}]\nTitle: ${item.title}\nDescription: ${item.description}`).join('\n\n');
-    const etsyDataStr = etsyItems.map((item, i) => `[Etsy Item ${i+1}]\nTitle: ${item.title}\nTags: ${item.tags}`).join('\n\n');
+    const amazonDataStr = amazonItems.map((item, i) => `[Amazon ${i+1}] Title: ${item.title}\nDesc: ${item.description}`).join('\n\n');
+    const etsyDataStr = etsyItems.map((item, i) => `[Etsy ${i+1}] Title: ${item.title}\nTags: ${item.tags}`).join('\n\n');
 
     const promptText = `
-You are a Master-level SEO Copywriter specializing in Zazzle marketplace optimization.
-Transform raw E-commerce data and Cultural Insight into highly optimized Zazzle listings.
+[SYSTEM]
+You are a Master-level Zazzle SEO Expert. Create optimized listings using provided data.
 
-RAW DATA INPUT:
----
-[TEXT ON DESIGN]: "${textDesign || 'None'}"
----
-[AMAZON DATA]: 
-${amazonDataStr || 'None provided'}
----
-[ETSY DATA]: 
-${etsyDataStr || 'None provided'}
----
-[CULTURAL/EMOTIONAL INSIGHT ARTICLE]: 
-${insightContext || 'None provided'}
----
+INPUT:
+- Text Design (MUST be at the start of Title): "${textDesign}"
+- Amazon Data: ${amazonDataStr}
+- Etsy Data: ${etsyDataStr}
+- Insight: ${insightContext}
 
-STEP 1: DESIGN CLASSIFICATION & KEYWORD EXTRACTION
-Extract the core subject, style, mood, and target audience from the data. 
-STRICTLY REMOVE: Brand names, sizing, materials (e.g., 100% cotton).
+RULES:
+1. TITLE: MUST start with "${textDesign}". Structure: "${textDesign}" + [color/style] + [subject] + [audience]. 
+2. DESCRIPTION: 3-5 sentences storytelling. No product types (shirt/mug).
+3. TAGS: 10 tags. ABSOLUTE rule: NO REPEATED WORDS across all 10 tags. 
 
-STEP 2: GENERATE VARIANTS
-Generate EXACTLY ${qty} HIGH-QUALITY variants. Each must be meaningfully different in phrasing and emotional angle.
+FORBIDDEN: shirt, tee, clothing, gift, custom, personalize.
 
-## 1. TITLES (SEO-CRITICAL)
-- ABSOLUTE MANDATORY RULE: Every single title MUST begin with the exact Text on Design: "${textDesign}".
-- Structure: "${textDesign}" + [color] + [style] + [content] + [audience/theme]
-- DO NOT use keyword stuffing or special characters. DO NOT include product names.
+OUTPUT ONLY JSON:
+{ "variants": [ { "newTitle": "...", "newDescription": "...", "newTags": "..." } ] }`;
 
-## 3. DESCRIPTION (SEO + EMOTIONAL CONVERSION)
-- Length: 3–5 sentences.
-- Tell a story based on the cultural/emotional insight provided.
-- Suggest real-life use cases. DO NOT repeat the exact title.
-
-## 4. TAGS (DISCOVERABILITY ENGINE - STRICT ZERO-TOLERANCE RULES)
-- Generate EXACTLY 10 tags per variant.
-- Minimum 3 characters per tag. Maximum 5 words per tag.
-- ABSOLUTE ZERO-TOLERANCE RULE: Every SINGLE WORD must be unique across all 10 tags. DO NOT reuse any word, even in different phrases.
-
-STRICTLY FORBIDDEN KEYWORDS ACROSS ALL FIELDS:
-shirt, shirts, tee, tees, apparel, clothing, accessory, mug, poster, gear, custom, create, gift, gifts, present, presents, gift idea, merchandise, personalize, personalized, customize, customized, custom made.
-
-OUTPUT FORMAT
-Output ONLY valid JSON. No markdown, no conversational text.
-{
-  "variants": [
-    {
-      "newTitle": "...",
-      "newDescription": "...",
-      "newTags": "tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10"
-    }
-  ]
-}`;
-
-    // KIẾN TRÚC ROUTING TỰ ĐỘNG CỦA OPENROUTER (FALLBACK ARRAY)
-    const openRouterPayload = {
+    // PHƯƠNG ÁN B: 3-MODEL FALLBACK (MAX 3 ITEMS TO AVOID ERROR 400)
+    const payload = {
       models: [
-        "openai/gpt-oss-120b", // Lựa chọn 1 của bạn (Có rủi ro không tồn tại)
-        "google/gemma-4-31b",  // Lựa chọn 2 của bạn (Có rủi ro không tồn tại)
-        "google/gemma-2-9b-it:free", // Lưới an toàn số 1 (Model Free thực tế của Google trên OpenRouter)
-        "meta-llama/llama-3.1-8b-instruct:free" // Lưới an toàn số 2 (Model Free thực tế của Meta trên OpenRouter)
+        "google/gemma-2-9b-it:free",
+        "meta-llama/llama-3.1-8b-instruct:free",
+        "qwen/qwen-2.5-72b-instruct:free"
       ],
       messages: [
-        { role: "system", content: "You are a specialized JSON-only output engine. You must output raw JSON without markdown formatting." },
+        { role: "system", content: "You are a JSON-only engine." },
         { role: "user", content: promptText }
-      ]
+      ],
+      repetition_penalty: 1.1
     };
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -156,32 +114,28 @@ Output ONLY valid JSON. No markdown, no conversational text.
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://zazzleseo.com",
-        "X-Title": "Zazzle SEO Tool"
+        "X-Title": "Zazzle SEO Ver 5.2"
       },
-      body: JSON.stringify(openRouterPayload)
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(`OpenRouter API Error (${response.status}): ${errorData}`);
+      const err = await response.text();
+      throw new Error(`OpenRouter Error: ${err}`);
     }
 
     const data = await response.json();
     const aiText = data.choices?.[0]?.message?.content || "";
-    
-    // Xử lý chuỗi JSON an toàn
     const cleanJson = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
     
-    const parsedData = JSON.parse(cleanJson);
-    if (parsedData.variants && Array.isArray(parsedData.variants)) {
-      parsedData.variants = parsedData.variants.map((v: ZazzleVariant) => sanitizeSEO(v));
-      return NextResponse.json(parsedData);
+    const parsed = JSON.parse(cleanJson);
+    if (parsed.variants) {
+      parsed.variants = parsed.variants.slice(0, qty).map((v: ZazzleVariant) => sanitizeSEO(v));
+      return NextResponse.json(parsed);
     }
-    
-    throw new Error("Cấu trúc JSON từ AI không hợp lệ.");
+    throw new Error("Invalid AI Output format");
 
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Lỗi hệ thống không xác định";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
