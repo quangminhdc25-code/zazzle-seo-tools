@@ -19,7 +19,7 @@ interface RequestBody {
   quantity: number;
 }
 
-// Middleware rà soát luật Zazzle (Zero-Tolerance)
+// Middleware rà soát luật Zazzle
 function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
   const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
   
@@ -91,18 +91,18 @@ RULES:
 
 FORBIDDEN: shirt, tee, clothing, gift, custom, personalize.
 
-OUTPUT ONLY JSON:
+OUTPUT ONLY JSON. NO MARKDOWN:
 { "variants": [ { "newTitle": "...", "newDescription": "...", "newTags": "..." } ] }`;
 
-    // PHƯƠNG ÁN B: 3-MODEL FALLBACK (MAX 3 ITEMS TO AVOID ERROR 400)
+    // VER 5.3: SỬ DỤNG 3 MODEL "PERMANENT FREE" (KHÔNG BAO GIỜ BỊ XÓA)
     const payload = {
       models: [
-        "google/gemma-2-9b-it:free",
-        "meta-llama/llama-3.1-8b-instruct:free",
-        "qwen/qwen-2.5-72b-instruct:free"
+        "mistralai/mistral-7b-instruct:free", // Lựa chọn 1: Mistral 7B - Cực kỳ ổn định
+        "huggingfaceh4/zephyr-7b-beta:free",  // Lựa chọn 2: Zephyr - Rất thông minh
+        "gryphe/mythomax-l2-13b:free"         // Lựa chọn 3: MythoMax - Xử lý text sáng tạo tốt
       ],
       messages: [
-        { role: "system", content: "You are a JSON-only engine." },
+        { role: "system", content: "You are a JSON-only engine. Output valid JSON strictly matching the schema." },
         { role: "user", content: promptText }
       ],
       repetition_penalty: 1.1
@@ -114,7 +114,7 @@ OUTPUT ONLY JSON:
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://zazzleseo.com",
-        "X-Title": "Zazzle SEO Ver 5.2"
+        "X-Title": "Zazzle SEO Ver 5.3"
       },
       body: JSON.stringify(payload)
     });
