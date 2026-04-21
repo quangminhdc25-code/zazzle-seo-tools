@@ -63,7 +63,6 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 
 export async function POST(request: Request) {
   try {
-    // CHỈ SỬ DỤNG BIẾN MÔI TRƯỜNG, TUYỆT ĐỐI KHÔNG HARDCODE KEY Ở ĐÂY NỮA
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("Lỗi Bảo mật: Thiếu biến môi trường GROQ_API_KEY trên máy chủ Vercel.");
 
