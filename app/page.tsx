@@ -7,18 +7,6 @@ interface AmazonItem { title: string; description: string; }
 interface EtsyItem { title: string; tags: string; }
 
 /* --- ICONS --- */
-const AmazonIcon = () => (
-  <svg viewBox="0 0 448 512" fill="currentColor" className="w-5 h-5 text-slate-800 dark:text-slate-200 transition-colors">
-    <path d="M257.2 162.7c-36.7-27.4-106.9-28.1-143-5.4-24.4 15.3-35 34-35 56 0 35.8 28.1 59.9 69.6 59.9 44.1 0 71.6-24.3 87.7-42.4.6-1.1 1.6-1.8 2.8-1.8 2.1 0 3.8 1.7 3.8 3.8v43.7c0 23.4 13.5 35 31.6 35 15.5 0 29.1-8.1 34.1-15.3 1.1-1.6 2.8-2.5 4.7-2.5 2.1 0 3.8 1.7 3.8 3.8v6.7c0 14.8-10.4 23.4-25.5 23.4-18.3 0-33.8-12.8-33.8-34.5v-31.8c-18.5 21.8-48.5 43.4-93.5 43.4-56.1 0-101.4-38.3-101.4-94 0-59 48.7-93.5 110.4-93.5 44.1 0 83.2 13.3 111.6 35.4 1.8 1.4 4.5 1.4 6.3 0l21.4-16.4c1.6-1.2 2.3-3.2 1.6-5.1-5.6-14.8-16.4-27.9-30.8-36.9-24.8-15.5-60.6-24.1-100.2-24.1-64.7 0-120.4 25.5-154.5 67.8-25 31.1-39.7 71.6-39.7 114.6 0 44.6 15.3 86.5 41.5 118.6 34.3 42.2 90.7 67.4 156.4 67.4 38.3 0 73.8-8.8 102.3-24.4 14.1-7.7 25.9-17.6 34.8-28.8 1.4-1.8 3.6-2.7 5.8-2.7 2.1 0 4.1.9 5.4 2.5l20.5 25c1.4 1.8 1.4 4.3 0 6.1-23.6 29.5-66.9 49.3-118.4 49.3-71.2 0-131.7-26.6-169.6-70.3-27.4-31.5-43.2-73.8-43.2-119.5 0-47.5 16-89.8 44.3-121.8C89.3 54.3 148.5 27 217.3 27c44.8 0 86 10.4 115.7 27.9 17.6 10.4 32.7 24.3 43.2 41.2 1.4 2.3 1.1 5.4-.9 7.2l-15.8 13.5c-1.8 1.6-4.5 1.6-6.3-.1zm-44.3-15.5c-13.7-10.4-32-16-52.2-16-29.3 0-48.9 12.8-48.9 31.5 0 16 16.4 26.6 40.8 26.6 19.4 0 40.3-9.5 53.6-24.4 3.8-4.3 6.7-9.5 6.7-14.8v-2.9z"/>
-  </svg>
-);
-
-const EtsyIcon = () => (
-  <svg viewBox="0 0 448 512" fill="currentColor" className="w-5 h-5 text-slate-800 dark:text-slate-200 transition-colors">
-    <path d="M129.5 45.4C108.9 42 77.2 40.8 54 40.8v32h14.5c11.9 0 17.6 2.6 19.3 14.5 1.1 8.8.6 62.1.6 109.8 0 54.5.6 100.4-1.7 106.1-2.8 8-10.2 11.4-23.9 11.9l-8.5.6v33H222V315h-10.8c-15.3-.6-23.3-3.4-27.2-9.7-3.4-5.1-4-23.3-4-81.2v-44.3h22.7c19.3 0 26.1 2.3 31.8 10.2 4.5 6.2 5.1 14.2 6.8 33h31.2V112.5h-31.2c-1.1 17-2.3 25.5-6.8 31.8-4.5 6.2-13.6 9.1-32.4 9.1H179.8v-35.8c0-38.6.6-42 4-46.5 4-5.1 10.8-7.4 26.1-7.4h28.4c34.1 0 51.7 6.2 64.2 23.3 10.8 15.3 14.2 38.6 15.3 84h32.4V40.8H129.5v4.6z"/>
-  </svg>
-);
-
 const AppleIcon = () => (
   <svg viewBox="0 0 384 512" fill="currentColor" className="w-5 h-5 text-slate-800 dark:text-slate-100 transition-colors">
     <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-93.6 20.7-19.2 0-55.6-23.4-86.7-22.9-41.4.6-80 24-100.9 61.2-42.6 75.9-10.9 188.1 30.5 248.5 20.3 29.6 44.5 63 76.2 61.8 30.8-1.2 42.6-20.1 79.5-20.1s47.8 20.1 80 19.5c33.5-.6 53.6-31.5 73.4-61.2 23.3-35 32.7-68.9 33.2-70.6-1.5-.6-46.6-17.7-46.9-57.5zM277.4 69.8c21.8-26.4 36.5-63.2 32.4-99.8-31.1 1.2-69.8 20.8-92.4 47.6-18 21.3-34.9 59.2-30 94.6 34.6 2.7 70.3-18.6 90-42.4z"/>
@@ -98,7 +86,6 @@ export default function Ver18Tool() {
     const savedResults = localStorage.getItem('zazzle_v18.0');
     if (savedResults) setResults(JSON.parse(savedResults));
     
-    // Đọc theme từ localStorage hoặc thiết bị
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
@@ -179,7 +166,7 @@ export default function Ver18Tool() {
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md shadow-blue-500/20">ZA</div>
             <div>
               <h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1>
-              <p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 18.0 • Apple Pro UX</p>
+              <p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 18.1 • Minimalist UX</p>
             </div>
           </div>
           <button 
@@ -227,7 +214,7 @@ export default function Ver18Tool() {
               {/* AMAZON */}
               <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-base font-bold flex items-center gap-2"><AmazonIcon /> Amazon Data</h2>
+                  <h2 className="text-base font-bold">Amazon Data</h2>
                   <CustomSelect value={amzCount} onChange={handleAmzCount} options={[1,2,3,4,5,6,7,8,9,10].map(n => ({label: `${n} Items`, value: n}))} />
                 </div>
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -244,7 +231,7 @@ export default function Ver18Tool() {
               {/* ETSY */}
               <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-base font-bold flex items-center gap-2"><EtsyIcon /> Etsy Data</h2>
+                  <h2 className="text-base font-bold">Etsy Data</h2>
                   <CustomSelect value={etsyCount} onChange={handleEtsyCount} options={[1,2,3,4,5,6,7,8,9,10].map(n => ({label: `${n} Items`, value: n}))} />
                 </div>
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
