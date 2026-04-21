@@ -70,7 +70,6 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
 
 export async function POST(request: Request) {
   try {
-    // Ưu tiên dùng API Key được cung cấp trực tiếp
     const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY || "AIzaSyABYv-d8sorqQbIIduFLVMeZJfJXoMQlcg";
 
     const body = (await request.json()) as RequestBody;
@@ -78,7 +77,6 @@ export async function POST(request: Request) {
 
     const qty = Math.min(Math.max(1, quantity || 1), 5);
 
-    // Chuẩn bị dữ liệu mảng thành chuỗi Text cho AI đọc
     const amazonDataStr = amazonItems.map((item, i) => `[Amazon Item ${i+1}]\nTitle: ${item.title}\nDescription: ${item.description}`).join('\n\n');
     const etsyDataStr = etsyItems.map((item, i) => `[Etsy Item ${i+1}]\nTitle: ${item.title}\nTags: ${item.tags}`).join('\n\n');
 
@@ -137,8 +135,9 @@ Output ONLY valid JSON.
   ]
 }`;
 
+    // Nâng cấp: Đổi sang gemini-1.5-pro để có 0 lỗi 429 và sử dụng Free Tier
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

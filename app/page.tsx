@@ -41,7 +41,7 @@ export default function ZazzleSEOTool() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('zazzle_history_v4');
+    const saved = localStorage.getItem('zazzle_history_v4.1');
     if (saved) {
       try { setResults(JSON.parse(saved) as ZazzleVariant[]); } catch (e) {}
     }
@@ -93,10 +93,9 @@ export default function ZazzleSEOTool() {
       if (!response.ok) throw new Error(data.error || 'Lỗi server');
 
       if (data.variants) {
-        // Đẩy kết quả mới lên đầu (Prepend), đẩy kết quả cũ xuống dưới
         const newHistory = [...data.variants, ...results].slice(0, 50);
         setResults(newHistory);
-        localStorage.setItem('zazzle_history_v4', JSON.stringify(newHistory));
+        localStorage.setItem('zazzle_history_v4.1', JSON.stringify(newHistory));
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Lỗi hệ thống');
@@ -108,7 +107,7 @@ export default function ZazzleSEOTool() {
   const clearHistory = () => {
     if(confirm('Xóa toàn bộ lịch sử?')) {
         setResults([]);
-        localStorage.removeItem('zazzle_history_v4');
+        localStorage.removeItem('zazzle_history_v4.1');
     }
   }
 
@@ -119,7 +118,7 @@ export default function ZazzleSEOTool() {
           ZAZZLE SEO <span className="text-blue-600">ARCHITECT</span>
         </h1>
         <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-3 bg-slate-200 px-3 py-1 rounded-full">
-          Version 4.0 • Gemini 2.5 Pro NLP
+          Version 4.1 • Gemini 1.5 Pro (Free Tier)
         </p>
       </header>
 
