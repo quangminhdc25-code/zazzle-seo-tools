@@ -18,19 +18,17 @@ const InfoIcon = () => (
 );
 
 /* --- CUSTOM COMPONENTS --- */
-const Tooltip = ({ title, desc, example }: { title: string, desc: string, example: string }) => {
-  return (
-    <div className="group relative inline-flex items-center ml-1.5 cursor-help text-slate-400 hover:text-blue-500 transition-colors">
-      <InfoIcon />
-      <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded-xl shadow-xl transition-all z-50 pointer-events-none border border-slate-600">
-        <p className="font-bold text-blue-300 mb-1">{title}</p>
-        <p className="font-medium text-slate-200 mb-1.5 leading-relaxed">{desc}</p>
-        <p className="italic text-slate-400"><span className="font-bold text-slate-300">Ex:</span> {example}</p>
-        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700"></div>
-      </div>
+const Tooltip = ({ title, desc, example }: { title: string, desc: string, example: string }) => (
+  <div className="group relative inline-flex items-center ml-1.5 cursor-help text-slate-400 hover:text-blue-500 transition-colors">
+    <InfoIcon />
+    <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded-xl shadow-xl transition-all z-50 pointer-events-none border border-slate-600">
+      <p className="font-bold text-blue-300 mb-1">{title}</p>
+      <p className="font-medium text-slate-200 mb-1.5 leading-relaxed">{desc}</p>
+      <p className="italic text-slate-400"><span className="font-bold text-slate-300">Ex:</span> {example}</p>
+      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700"></div>
     </div>
-  );
-};
+  </div>
+);
 
 const CustomSelect = ({ value, options, onChange, prefix }: { value: any, options: {label: string, value: any}[], onChange: (val: any) => void, prefix?: string }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -63,27 +61,77 @@ const CustomSelect = ({ value, options, onChange, prefix }: { value: any, option
   );
 };
 
-const MultiSelectPills = ({ options, selected, onChange }: { options: string[], selected: string[], onChange: (val: string[]) => void }) => {
+const MultiSelectDropdown = ({ defaultOptions, selected, onChange, placeholder }: { defaultOptions: string[], selected: string[], onChange: (val: string[]) => void, placeholder: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [customOptions, setCustomOptions] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const allOptions = Array.from(new Set([...defaultOptions, ...customOptions]));
+
   const toggle = (opt: string) => {
     if (selected.includes(opt)) onChange(selected.filter(i => i !== opt));
     else onChange([...selected, opt]);
   };
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = inputValue.trim();
+    if (trimmed && !allOptions.includes(trimmed)) {
+      setCustomOptions([...customOptions, trimmed]);
+      if (!selected.includes(trimmed)) onChange([...selected, trimmed]);
+      setInputValue('');
+    }
+  };
+
+  return (
+    <div className="relative mt-1" ref={dropdownRef}>
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-white/70 dark:bg-[#1c1c1e]/70 backdrop-blur-md border border-slate-200/50 dark:border-white/5 rounded-xl shadow-sm cursor-pointer hover:bg-white dark:hover:bg-[#2c2c2e] transition-all select-none" onClick={() => setIsOpen(!isOpen)}>
+        <span className={`text-xs font-semibold ${selected.length > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
+          {selected.length > 0 ? `${selected.length} item(s) selected` : placeholder}
+        </span>
+        <svg className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+      </div>
+      
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1.5 min-w-full w-max bg-white/95 dark:bg-[#2c2c2e]/95 backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 rounded-xl shadow-2xl z-50 p-2 flex flex-col gap-2">
+          <form onSubmit={handleAdd} className="flex gap-2">
+            <input type="text" value={inputValue} onChange={e=>setInputValue(e.target.value)} className="flex-1 bg-slate-100 dark:bg-[#1c1c1e] border border-transparent rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500 text-slate-800 dark:text-slate-100 transition-colors" placeholder="Type and press Add..." />
+            <button type="submit" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shrink-0 shadow-sm">Add</button>
+          </form>
+          <div className="max-h-[180px] overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
+            {allOptions.map(opt => (
+              <label key={opt} className="flex items-center gap-3 px-2 py-2 hover:bg-slate-50 dark:hover:bg-[#3a3a3c] rounded-lg cursor-pointer transition-colors group">
+                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selected.includes(opt) ? 'bg-blue-600 border-blue-600 shadow-sm shadow-blue-500/30' : 'bg-white dark:bg-[#1c1c1e] border-slate-300 dark:border-slate-600 group-hover:border-blue-400'}`}>
+                  {selected.includes(opt) && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                </div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SelectedPills = ({ selected, onRemove }: { selected: string[], onRemove: (val: string) => void }) => {
+  if (selected.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2 mt-2">
-      {options.map(opt => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => toggle(opt)}
-          className={`px-3 py-1.5 text-[10px] md:text-xs font-semibold rounded-lg transition-all border ${
-            selected.includes(opt)
-              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20'
-              : 'bg-white/50 dark:bg-[#1c1c1e]/50 border-slate-200/50 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#2c2c2e]'
-          }`}
-        >
-          {selected.includes(opt) && <span className="mr-1.5">✓</span>}
+      {selected.map(opt => (
+        <span key={opt} className="px-2.5 py-1 text-[10px] md:text-xs font-bold rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 flex items-center gap-1.5 shadow-sm">
           {opt}
-        </button>
+          <button type="button" onClick={() => onRemove(opt)} className="hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-full w-4 h-4 flex items-center justify-center transition-colors">&times;</button>
+        </span>
       ))}
     </div>
   );
@@ -109,7 +157,7 @@ const emotionOptions = [
   { label: 'Professional (Chuyên nghiệp)', value: 'Professional' },
   { label: 'Heartwarming (Ấm áp)', value: 'Heartwarming' },
   { label: 'Cute & Kawaii (Dễ thương)', value: 'Cute & Kawaii' },
-  { label: 'Edgy / Rebellious (Cá tính, Nổi loạn)', value: 'Edgy / Rebellious' },
+  { label: 'Edgy / Rebellious (Nổi loạn)', value: 'Edgy / Rebellious' },
   { label: 'Peaceful / Zen (Thanh bình)', value: 'Peaceful / Zen' }
 ];
 
@@ -118,8 +166,8 @@ const toneOptions = [
   { label: 'Witty & Sharp (Sắc sảo)', value: 'Witty & Sharp' },
   { label: 'Whimsical & Dreamy (Bay bổng)', value: 'Whimsical & Dreamy' },
   { label: 'Bold & Direct (Trực tiếp)', value: 'Bold & Direct' },
-  { label: 'Poetic & Soft (Mềm mại, Thơ mộng)', value: 'Poetic & Soft' },
-  { label: 'Sassy & Playful (Nhí nhảnh, Đanh đá)', value: 'Sassy & Playful' },
+  { label: 'Poetic & Soft (Thơ mộng)', value: 'Poetic & Soft' },
+  { label: 'Sassy & Playful (Nhí nhảnh)', value: 'Sassy & Playful' },
   { label: 'Formal & Elegant (Trang trọng)', value: 'Formal & Elegant' }
 ];
 
@@ -218,7 +266,7 @@ export default function Ver20Tool() {
         <header className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md shadow-blue-500/20">ZA</div>
-            <div><h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1><p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 20.0 • The Ultimate UI</p></div>
+            <div><h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1><p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 20.2 • Advanced Input UX</p></div>
           </div>
           <button onClick={toggleTheme} className="px-4 py-2 rounded-full bg-white/60 dark:bg-[#2c2c2e]/60 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-sm text-xs font-bold flex items-center gap-2 hover:bg-white dark:hover:bg-[#3a3a3c] transition-all">{isDark ? '☀️ Light' : '🌙 Dark'}</button>
         </header>
@@ -243,6 +291,7 @@ export default function Ver20Tool() {
                 <CustomSelect prefix="Output" value={qty} onChange={setQty} options={[1,2,3,4,5].map(n => ({label: `${n} Variants`, value: n}))} />
               </div>
               <div className="space-y-6">
+                
                 {/* Prefix Design */}
                 <div>
                   <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
@@ -256,9 +305,10 @@ export default function Ver20Tool() {
                 <div>
                   <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
                     Target Audience <span className="text-red-500 ml-1">*</span>
-                    <Tooltip title="Target Audience" desc="Chọn nhiều nhóm khách hàng mục tiêu để tạo sự kết hợp ngách độc đáo." example="Gen Z + Introverts" />
+                    <Tooltip title="Target Audience" desc="Chọn nhóm khách hàng mục tiêu để tạo sự kết hợp ngách độc đáo." example="Gen Z + Introverts" />
                   </label>
-                  <MultiSelectPills options={audienceList} selected={targetAudience} onChange={setTargetAudience} />
+                  <MultiSelectDropdown defaultOptions={audienceList} selected={targetAudience} onChange={setTargetAudience} placeholder="Select Target Audience..." />
+                  <SelectedPills selected={targetAudience} onRemove={opt => setTargetAudience(targetAudience.filter(i => i !== opt))} />
                 </div>
 
                 {/* Core Emotion & Tone */}
@@ -285,7 +335,8 @@ export default function Ver20Tool() {
                     Situation / Occasion
                     <Tooltip title="Situation / Occasion" desc="Chọn hoàn cảnh sử dụng hoặc dịp tặng quà để chốt sale." example="Birthdays, Office" />
                   </label>
-                  <MultiSelectPills options={situationList} selected={situation} onChange={setSituation} />
+                  <MultiSelectDropdown defaultOptions={situationList} selected={situation} onChange={setSituation} placeholder="Select Situation/Occasion..." />
+                  <SelectedPills selected={situation} onRemove={opt => setSituation(situation.filter(i => i !== opt))} />
                 </div>
 
                 {/* Value Proposition */}
@@ -294,7 +345,8 @@ export default function Ver20Tool() {
                     Value Proposition / Benefit
                     <Tooltip title="Value Proposition" desc="Giá trị độc nhất hoặc lợi ích tinh thần của thiết kế." example="Relatable Humor" />
                   </label>
-                  <MultiSelectPills options={valuePropList} selected={valueProp} onChange={setValueProp} />
+                  <MultiSelectDropdown defaultOptions={valuePropList} selected={valueProp} onChange={setValueProp} placeholder="Select Value Proposition..." />
+                  <SelectedPills selected={valueProp} onRemove={opt => setValueProp(valueProp.filter(i => i !== opt))} />
                 </div>
               </div>
             </div>
