@@ -14,12 +14,15 @@ interface EtsyItem { title: string; tags: string; }
 interface RequestBody {
   amazonItems: AmazonItem[];
   etsyItems: EtsyItem[];
-  insightContext: string;
   textDesign: string;
   quantity: number;
+  targetAudience: string;
+  coreEmotion: string;
+  situation: string;
+  tone: string;
+  valueProp: string;
 }
 
-// Logic rà soát SEO dứt điểm
 function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
   const blacklist = ['shirt', 'shirts', 'tee', 'tees', 'apparel', 'clothing', 'accessory', 'accessories', 'mug', 'gift', 'gifts', 'present', 'presents', 'merchandise', 'custom', 'customize', 'customized', 'personalize', 'personalised', 'gear', 'create'];
   
@@ -68,31 +71,59 @@ export async function POST(request: Request) {
     if (!apiKey) throw new Error("Security Error: Missing GROQ_API_KEY.");
 
     const body = (await request.json()) as RequestBody;
-    const { amazonItems, etsyItems, insightContext, textDesign, quantity } = body;
+    const { amazonItems, etsyItems, textDesign, quantity, targetAudience, coreEmotion, situation, tone, valueProp } = body;
 
     const qty = Math.min(Math.max(1, quantity || 1), 5);
     const amazonDataStr = amazonItems.map((item, i) => `[Amazon ${i+1}] Title: ${item.title}\nDesc: ${item.description}`).join('\n\n');
     const etsyDataStr = etsyItems.map((item, i) => `[Etsy ${i+1}] Title: ${item.title}\nTags: ${item.tags}`).join('\n\n');
 
+    // STRUCTURED INSIGHT INTEGRATION
+    const structuredInsight = `
+    - Target Audience: ${targetAudience}
+    - Core Emotion: ${coreEmotion}
+    - Situation/Occasion: ${situation || 'Everyday lifestyle'}
+    - Tone of Voice: ${tone}
+    - Unique Value Proposition: ${valueProp || 'Premium design'}
+    `;
+
     const promptText = `
-You are a Master-level Zazzle SEO Expert.
-Transform raw data into optimized listings.
+You are an elite E-commerce SEO Specialist and Expert Copywriter for Zazzle.
+Generate ${qty} highly optimized, DISTINCT listing variants based on the provided data.
 
-INPUT:
-- Text Design (MUST START THE TITLE): "${textDesign}"
-- Amazon Data: ${amazonDataStr}
-- Etsy Data: ${etsyDataStr}
-- Insight: ${insightContext}
+[INPUT DATA]
+- Text Design (Mandatory Prefix): "${textDesign}"
+- Amazon Market Data: ${amazonDataStr}
+- Etsy Market Data: ${etsyDataStr}
+- Structured Buyer Insight: ${structuredInsight}
 
-RULES:
-1. TITLE: Starts with "${textDesign}". No keyword stuffing.
-2. DESCRIPTION: 3-5 sentences storytelling.
-3. TAGS: 10 tags per variant. ABSOLUTELY UNIQUE WORDS across all tags.
+[STRICT RULES]
+1. TITLE: 
+   - MUST begin EXACTLY with: "${textDesign}".
+   - Length: Under 70 characters. Must sound natural and human-written (NO machine keyword stuffing).
 
-FORBIDDEN: shirt, tee, clothing, mug, custom, personalize.
+2. DESCRIPTION: 
+   - Length: 3 to 5 sentences.
+   - Style: Engaging storytelling. You MUST weave the Target Audience and Core Emotion from the "Structured Buyer Insight" into the text. Match the requested Tone.
+   - Focus: Explicitly highlight the emotional value and the specified situation/occasion.
+   - Formatting: DO NOT wrap the description in quotes.
 
-OUTPUT JSON:
-{ "variants": [ { "newTitle": "...", "newDescription": "...", "newTags": "..." } ] }`;
+3. TAGS: 
+   - Quantity: EXACTLY 10 tags per variant.
+   - Format: comma-separated, strictly lowercase. Maximum 3 words per tag.
+   - SEO RULE: ZERO REPEATED WORDS across all 10 tags. Maximize vocabulary for broad search coverage.
+
+4. VARIATION DIVERSITY:
+   - Each variant MUST target a completely different search intent or angle based on the provided market data.
+
+5. FORBIDDEN WORDS:
+   - DO NOT USE: shirt, shirts, tee, tees, apparel, clothing, accessory, accessories, mug, gift, gifts, present, custom, customize, personalized, personalize.
+
+[OUTPUT FORMAT]
+- Return ONLY a raw, valid JSON object. 
+- CRITICAL: DO NOT include markdown formatting like \`\`\`json or \`\`\`. No explanations.
+- Exact Structure:
+{ "variants": [ { "newTitle": "...", "newDescription": "...", "newTags": "..." } ] }
+`;
 
     const payload = {
       model: "llama-3.3-70b-versatile",
@@ -119,14 +150,17 @@ OUTPUT JSON:
     }
 
     const data = await response.json();
-    const aiText = data.choices?.[0]?.message?.content || "";
+    let aiText = data.choices?.[0]?.message?.content || "";
     
+    // Safety Fallback for LLMs that ignore the "No Markdown" rule
+    aiText = aiText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
     const parsed = JSON.parse(aiText);
     if (parsed.variants && Array.isArray(parsed.variants)) {
       parsed.variants = parsed.variants.slice(0, qty).map((v: ZazzleVariant) => sanitizeSEO(v));
       return NextResponse.json(parsed);
     }
-    throw new Error("Invalid format");
+    throw new Error("Invalid format received from AI.");
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
