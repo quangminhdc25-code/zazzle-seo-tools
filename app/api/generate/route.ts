@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-interface ZazzleVariant { newTitle: string; newDescription: string; newTags: string; }
+interface ZazzleVariant { newTitle: string; newDescription: string; newTags: string; seoScore: number; }
 interface AmazonItem { title: string; description: string; }
 interface EtsyItem { title: string; tags: string; }
 
@@ -36,7 +36,7 @@ function sanitizeSEO(variant: ZazzleVariant): ZazzleVariant {
       words.forEach(w => seenWords.add(w.replace(/[^a-z0-9]/g, ''))); cleanTags.push(tag);
     }
   }
-  return { newTitle: cleanTitle.replace(/\s+/g, ' ').trim(), newDescription: cleanDesc.replace(/\s+/g, ' ').trim(), newTags: cleanTags.join(', ') };
+  return { newTitle: cleanTitle.replace(/\s+/g, ' ').trim(), newDescription: cleanDesc.replace(/\s+/g, ' ').trim(), newTags: cleanTags.join(', '), seoScore: variant.seoScore || 85 };
 }
 
 export async function POST(request: Request) {
@@ -69,27 +69,27 @@ Generate ${qty} highly optimized, DISTINCT listing variants based on the provide
 
 [STRICT RULES]
 1. TITLE: 
-   - MUST begin EXACTLY with: "${textDesign}". Under 70 characters. Natural phrasing.
-
+   - MUST begin EXACTLY with: "${textDesign}".
+   - Length: Under 70 characters. Natural phrasing.
 2. DESCRIPTION (SEO & CONVERSION MASTERCLASS): 
    - Length: Exactly 3 to 4 sentences. Paragraph format.
    - Front-loading SEO: The first sentence MUST include "${textDesign}" seamlessly.
    - Product Agnostic (CRITICAL): NEVER use "shirt", "mug", "sticker". ONLY use "this design", "this artwork", "this piece".
-   - Copywriting Formula: Autonomously extract the Target Audience, Situation/Occasion, and Value Proposition from the "Raw Customer Context" provided. Weave these extracted elements together with the "Core Emotion" to explain the emotional benefit to the buyer. Match the requested "Tone of Voice".
-   - Formatting: DO NOT wrap the description in quotes. No bullet points.
-
+   - Copywriting Formula: Autonomously extract Target Audience, Situation/Occasion, and Value Proposition from the "Raw Customer Context". Weave them with the "Core Emotion" to explain the emotional benefit. Match the requested "Tone of Voice".
+   - Formatting: NO quotes. NO bullet points.
 3. TAGS: 
-   - Exactly 10 tags. Comma-separated, lowercase. Max 3 words per tag. ZERO REPEATED WORDS across all 10 tags.
-
+   - Exactly 10 tags. Comma-separated, lowercase. Max 3 words per tag. ZERO REPEATED WORDS.
 4. DIVERSITY:
-   - Each variant MUST target a different angle based on the market data.
-
+   - Each variant MUST target a different angle based on market data.
 5. FORBIDDEN WORDS:
    - shirt, shirts, tee, apparel, clothing, accessory, mug, gift, present, custom, personalized.
+6. SEO SCORING ALGORITHM (Google Standard):
+   - Evaluate each generated variant and assign an integer 'seoScore' between 50 and 100.
+   - Criteria: Title optimal length (50-60 chars) & front-loaded keyword (+30 pts). Meta Description hook (first 160 chars) contains keyword naturally (+30 pts). Semantic Richness/LSI tags without repetition (+40 pts). Penalize if forbidden words are used.
 
 [OUTPUT FORMAT]
 - Return ONLY a raw, valid JSON object. DO NOT include markdown \`\`\`json.
-{ "variants": [ { "newTitle": "...", "newDescription": "...", "newTags": "..." } ] }
+{ "variants": [ { "newTitle": "...", "newDescription": "...", "newTags": "...", "seoScore": 95 } ] }
 `;
 
     const payload = {
