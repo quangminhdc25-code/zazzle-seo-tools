@@ -21,7 +21,7 @@ const InfoIcon = () => (
 const Tooltip = ({ title, desc, example }: { title: string, desc: string, example: string }) => (
   <div className="group relative inline-flex items-center ml-1.5 cursor-help text-slate-400 hover:text-blue-500 transition-colors">
     <InfoIcon />
-    <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded-xl shadow-xl transition-all z-50 pointer-events-none border border-slate-600">
+    <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded-xl shadow-xl transition-all z-[100] pointer-events-none border border-slate-600">
       <p className="font-bold text-blue-300 mb-1">{title}</p>
       <p className="font-medium text-slate-200 mb-1.5 leading-relaxed">{desc}</p>
       <p className="italic text-slate-400"><span className="font-bold text-slate-300">Ex:</span> {example}</p>
@@ -51,7 +51,7 @@ const CustomSelect = ({ value, options, onChange, prefix }: { value: any, option
         <svg className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
       </div>
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 min-w-full w-max bg-white/95 dark:bg-[#2c2c2e]/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/10 rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden max-h-[250px] overflow-y-auto custom-scrollbar">
+        <div className="absolute top-full right-0 mt-1 min-w-full w-max bg-white/95 dark:bg-[#2c2c2e]/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/10 rounded-xl shadow-2xl z-[100] py-1.5 overflow-hidden max-h-[250px] overflow-y-auto custom-scrollbar">
           {options.map((opt) => (
             <div key={opt.value} className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${value === opt.value ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#3a3a3c]'}`} onClick={() => { onChange(opt.value); setIsOpen(false); }}>{opt.label}</div>
           ))}
@@ -91,7 +91,6 @@ const toneOptions = [
   { label: 'Formal & Elegant (Trang trọng)', value: 'Formal & Elegant' }
 ];
 
-
 export default function Ver21Tool() {
   const [isDark, setIsDark] = useState(false);
   const [qty, setQty] = useState(1);
@@ -113,7 +112,7 @@ export default function Ver21Tool() {
   const [filterIndex, setFilterIndex] = useState<number | 'all'>('all');
 
   useEffect(() => {
-    const savedResults = localStorage.getItem('zazzle_v21.0');
+    const savedResults = localStorage.getItem('zazzle_v21.1');
     if (savedResults) setResults(JSON.parse(savedResults));
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -152,7 +151,7 @@ export default function Ver21Tool() {
       const newResults = [...data.variants, ...results].slice(0, 50);
       setResults(newResults);
       setFilterIndex('all');
-      localStorage.setItem('zazzle_v21.0', JSON.stringify(newResults));
+      localStorage.setItem('zazzle_v21.1', JSON.stringify(newResults));
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -174,7 +173,7 @@ export default function Ver21Tool() {
         <header className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md shadow-blue-500/20">ZA</div>
-            <div><h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1><p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 21.0 • AI Auto-Extraction</p></div>
+            <div><h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1><p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 21.1 • UI Overflow Fix</p></div>
           </div>
           <button onClick={toggleTheme} className="px-4 py-2 rounded-full bg-white/60 dark:bg-[#2c2c2e]/60 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-sm text-xs font-bold flex items-center gap-2 hover:bg-white dark:hover:bg-[#3a3a3c] transition-all">{isDark ? '☀️ Light' : '🌙 Dark'}</button>
         </header>
@@ -188,11 +187,11 @@ export default function Ver21Tool() {
 
         <div className="flex flex-col xl:flex-row gap-5 items-start">
           
-          {/* CỘT INPUT */}
-          <form onSubmit={submit} className="flex-1 w-full xl:w-[40%] flex flex-col gap-5 z-20">
+          {/* CỘT INPUT - SỬA LỖI Z-INDEX: Thêm z-50 vào Form Container */}
+          <form onSubmit={submit} className="flex-1 w-full xl:w-[40%] flex flex-col gap-5 relative z-50">
             
-            {/* 1. GENERAL & STRUCTURED INSIGHT */}
-            <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative">
+            {/* 1. GENERAL & STRUCTURED INSIGHT - Thêm z-50 để đè lên Amazon/Etsy */}
+            <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative z-50">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 rounded-l-2xl"></div>
               <div className="flex justify-between items-center mb-5 border-b border-slate-200/50 dark:border-slate-700 pb-4">
                 <h2 className="text-base font-bold pl-2">Structured Buyer Insight</h2>
@@ -213,7 +212,7 @@ export default function Ver21Tool() {
                 <div>
                   <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
                     Customer Context (Auto-Extract) <span className="text-red-500 ml-1">*</span>
-                    <Tooltip title="Auto-Extract Context" desc="Dán đoạn văn bản (text) mô tả về khách hàng mục tiêu, hoàn cảnh sử dụng hoặc lợi ích sản phẩm vào đây. AI sẽ tự động đọc hiểu và trích xuất thông tin thay vì phải nhập từng ô." example="Áo dành cho giáo viên mầm non mặc ngày tựu trường, phong cách vui nhộn..." />
+                    <Tooltip title="Auto-Extract Context" desc="Dán đoạn văn bản (text) mô tả về khách hàng mục tiêu, hoàn cảnh sử dụng hoặc lợi ích sản phẩm vào đây. AI sẽ tự động bóc tách thông tin." example="Áo dành cho giáo viên mầm non mặc ngày tựu trường, vui nhộn..." />
                   </label>
                   <textarea 
                     className="w-full min-h-[120px] rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-3 border border-slate-200/50 dark:border-white/5 text-sm font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400 custom-scrollbar resize-y" 
@@ -295,15 +294,15 @@ export default function Ver21Tool() {
           </form>
 
           {/* CỘT KẾT QUẢ */}
-          <div className="flex-1 w-full xl:w-[60%] xl:sticky xl:top-6 flex flex-col xl:h-[calc(100vh-48px)]">
+          <div className="flex-1 w-full xl:w-[60%] xl:sticky xl:top-6 flex flex-col xl:h-[calc(100vh-48px)] z-0">
             <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 h-full flex flex-col relative">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 rounded-l-2xl"></div>
-              <div className="flex justify-between items-center mb-5 pb-4 border-b border-slate-200/50 dark:border-slate-700 pl-2 z-10">
+              <div className="flex justify-between items-center mb-5 pb-4 border-b border-slate-200/50 dark:border-slate-700 pl-2">
                 <h2 className="text-lg font-bold flex items-center gap-2"><AppleIcon /> Kết quả đầu ra</h2>
                 {results.length > 0 && (
                   <div className="flex items-center gap-3">
                     <CustomSelect value={filterIndex} onChange={setFilterIndex} options={[{label: 'Tất cả', value: 'all'}, ...results.map((_, idx) => ({label: `Kết quả #${results.length - idx}`, value: idx}))]} />
-                    <button onClick={() => {if(confirm('Xóa lịch sử?')){setResults([]); localStorage.removeItem('zazzle_v21.0');}}} className="w-8 h-8 flex items-center justify-center bg-white/80 dark:bg-[#3a3a3c] text-red-500 rounded-full font-bold border border-slate-200/50 dark:border-white/10 shadow-sm text-xs hover:bg-red-50 dark:hover:bg-red-900/20">✕</button>
+                    <button onClick={() => {if(confirm('Xóa lịch sử?')){setResults([]); localStorage.removeItem('zazzle_v21.1');}}} className="w-8 h-8 flex items-center justify-center bg-white/80 dark:bg-[#3a3a3c] text-red-500 rounded-full font-bold border border-slate-200/50 dark:border-white/10 shadow-sm text-xs hover:bg-red-50 dark:hover:bg-red-900/20">✕</button>
                   </div>
                 )}
               </div>
