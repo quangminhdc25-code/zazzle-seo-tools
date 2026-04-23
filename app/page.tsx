@@ -61,82 +61,6 @@ const CustomSelect = ({ value, options, onChange, prefix }: { value: any, option
   );
 };
 
-const MultiSelectDropdown = ({ defaultOptions, selected, onChange, placeholder }: { defaultOptions: string[], selected: string[], onChange: (val: string[]) => void, placeholder: string }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [customOptions, setCustomOptions] = useState<string[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const allOptions = Array.from(new Set([...defaultOptions, ...customOptions]));
-
-  const toggle = (opt: string) => {
-    if (selected.includes(opt)) onChange(selected.filter(i => i !== opt));
-    else onChange([...selected, opt]);
-  };
-
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = inputValue.trim();
-    if (trimmed && !allOptions.includes(trimmed)) {
-      setCustomOptions([...customOptions, trimmed]);
-      if (!selected.includes(trimmed)) onChange([...selected, trimmed]);
-      setInputValue('');
-    }
-  };
-
-  return (
-    <div className="relative mt-1" ref={dropdownRef}>
-      <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-white/70 dark:bg-[#1c1c1e]/70 backdrop-blur-md border border-slate-200/50 dark:border-white/5 rounded-xl shadow-sm cursor-pointer hover:bg-white dark:hover:bg-[#2c2c2e] transition-all select-none" onClick={() => setIsOpen(!isOpen)}>
-        <span className={`text-xs font-semibold ${selected.length > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
-          {selected.length > 0 ? `${selected.length} item(s) selected` : placeholder}
-        </span>
-        <svg className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-      </div>
-      
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1.5 min-w-full w-max bg-white/95 dark:bg-[#2c2c2e]/95 backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 rounded-xl shadow-2xl z-50 p-2 flex flex-col gap-2">
-          <form onSubmit={handleAdd} className="flex gap-2">
-            <input type="text" value={inputValue} onChange={e=>setInputValue(e.target.value)} className="flex-1 bg-slate-100 dark:bg-[#1c1c1e] border border-transparent rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500 text-slate-800 dark:text-slate-100 transition-colors" placeholder="Type and press Add..." />
-            <button type="submit" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shrink-0 shadow-sm">Add</button>
-          </form>
-          <div className="max-h-[180px] overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
-            {allOptions.map(opt => (
-              <label key={opt} className="flex items-center gap-3 px-2 py-2 hover:bg-slate-50 dark:hover:bg-[#3a3a3c] rounded-lg cursor-pointer transition-colors group">
-                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selected.includes(opt) ? 'bg-blue-600 border-blue-600 shadow-sm shadow-blue-500/30' : 'bg-white dark:bg-[#1c1c1e] border-slate-300 dark:border-slate-600 group-hover:border-blue-400'}`}>
-                  {selected.includes(opt) && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                </div>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{opt}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const SelectedPills = ({ selected, onRemove }: { selected: string[], onRemove: (val: string) => void }) => {
-  if (selected.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-2 mt-2">
-      {selected.map(opt => (
-        <span key={opt} className="px-2.5 py-1 text-[10px] md:text-xs font-bold rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 flex items-center gap-1.5 shadow-sm">
-          {opt}
-          <button type="button" onClick={() => onRemove(opt)} className="hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-full w-4 h-4 flex items-center justify-center transition-colors">&times;</button>
-        </span>
-      ))}
-    </div>
-  );
-};
-
 const CopyBtn = ({ text }: { text: string }) => {
   const [ok, setOk] = useState(false);
   const copy = () => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 2000); };
@@ -146,10 +70,6 @@ const CopyBtn = ({ text }: { text: string }) => {
 };
 
 /* --- DATA PRESETS --- */
-const audienceList = ["Gen Z", "Millennials", "Proud Moms/Dads", "Grandparents", "Teachers/Nurses", "Pet Owners", "Introverts", "Couples/Newlyweds", "Office Workers", "Best Friends"];
-const situationList = ["Birthdays", "Christmas/Holidays", "Mother's/Father's Day", "Back to School", "Weddings/Bridal", "Work/Office", "Everyday Lifestyle", "Anniversary"];
-const valuePropList = ["Relatable Humor", "Motivational", "Thoughtful Keepsake", "Vintage/Retro", "Minimalist Chic", "Personalized Feel", "Sarcastic Icebreaker"];
-
 const emotionOptions = [
   { label: 'Nostalgic (Hoài niệm)', value: 'Nostalgic' },
   { label: 'Sarcastic Humor (Mỉa mai)', value: 'Sarcastic Humor' },
@@ -172,32 +92,28 @@ const toneOptions = [
 ];
 
 
-export default function Ver20Tool() {
+export default function Ver21Tool() {
   const [isDark, setIsDark] = useState(false);
   const [qty, setQty] = useState(1);
   
-  // General & Structured Insight States
+  // App States
   const [textDesign, setTextDesign] = useState('');
-  const [targetAudience, setTargetAudience] = useState<string[]>([]);
+  const [customerContext, setCustomerContext] = useState('');
   const [coreEmotion, setCoreEmotion] = useState('Nostalgic');
-  const [situation, setSituation] = useState<string[]>([]);
   const [tone, setTone] = useState('Storytelling');
-  const [valueProp, setValueProp] = useState<string[]>([]);
 
-  // Market Data States
   const [amzCount, setAmzCount] = useState(1);
   const [amzItems, setAmzItems] = useState<AmazonItem[]>([{ title: '', description: '' }]);
   const [etsyCount, setEtsyCount] = useState(1);
   const [etsyItems, setEtsyItems] = useState<EtsyItem[]>([{ title: '', tags: '' }]);
   
-  // App States
   const [results, setResults] = useState<ZazzleVariant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filterIndex, setFilterIndex] = useState<number | 'all'>('all');
 
   useEffect(() => {
-    const savedResults = localStorage.getItem('zazzle_v20.0');
+    const savedResults = localStorage.getItem('zazzle_v21.0');
     if (savedResults) setResults(JSON.parse(savedResults));
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -226,35 +142,27 @@ export default function Ver20Tool() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!textDesign) return setError('Vui lòng nhập Prefix Design.');
-    if (targetAudience.length === 0) return setError('Vui lòng chọn ít nhất 1 Target Audience.');
+    if (!customerContext) return setError('Vui lòng nhập Customer Context.');
     setLoading(true); setError('');
     try {
-      const payload = { 
-        amazonItems: amzItems, etsyItems: etsyItems, textDesign, quantity: qty, 
-        targetAudience: targetAudience.join(', '), 
-        coreEmotion, 
-        situation: situation.join(', '), 
-        tone, 
-        valueProp: valueProp.join(', ') 
-      };
+      const payload = { amazonItems: amzItems, etsyItems: etsyItems, textDesign, quantity: qty, customerContext, coreEmotion, tone };
       const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       const newResults = [...data.variants, ...results].slice(0, 50);
       setResults(newResults);
       setFilterIndex('all');
-      localStorage.setItem('zazzle_v20.0', JSON.stringify(newResults));
+      localStorage.setItem('zazzle_v21.0', JSON.stringify(newResults));
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
 
   const progress = () => {
     let p = 0;
-    if (textDesign) p += 20;
-    if (targetAudience.length > 0) p += 20;
-    if (situation.length > 0 || valueProp.length > 0) p += 20;
-    if (amzItems[0]?.title) p += 20;
-    if (etsyItems[0]?.title) p += 20;
+    if (textDesign) p += 25;
+    if (customerContext) p += 25;
+    if (amzItems[0]?.title) p += 25;
+    if (etsyItems[0]?.title) p += 25;
     return p;
   };
 
@@ -266,7 +174,7 @@ export default function Ver20Tool() {
         <header className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-md shadow-blue-500/20">ZA</div>
-            <div><h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1><p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 20.2 • Advanced Input UX</p></div>
+            <div><h1 className="text-xl md:text-2xl font-bold tracking-tight">Zazzle SEO Architect</h1><p className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Ver 21.0 • AI Auto-Extraction</p></div>
           </div>
           <button onClick={toggleTheme} className="px-4 py-2 rounded-full bg-white/60 dark:bg-[#2c2c2e]/60 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-sm text-xs font-bold flex items-center gap-2 hover:bg-white dark:hover:bg-[#3a3a3c] transition-all">{isDark ? '☀️ Light' : '🌙 Dark'}</button>
         </header>
@@ -301,14 +209,18 @@ export default function Ver20Tool() {
                   <input type="text" className="w-full rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400" value={textDesign} onChange={e => setTextDesign(e.target.value)} placeholder="e.g. Vintage Cat Mama" />
                 </div>
                 
-                {/* Target Audience */}
+                {/* Customer Context (Auto Extract) */}
                 <div>
                   <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
-                    Target Audience <span className="text-red-500 ml-1">*</span>
-                    <Tooltip title="Target Audience" desc="Chọn nhóm khách hàng mục tiêu để tạo sự kết hợp ngách độc đáo." example="Gen Z + Introverts" />
+                    Customer Context (Auto-Extract) <span className="text-red-500 ml-1">*</span>
+                    <Tooltip title="Auto-Extract Context" desc="Dán đoạn văn bản (text) mô tả về khách hàng mục tiêu, hoàn cảnh sử dụng hoặc lợi ích sản phẩm vào đây. AI sẽ tự động đọc hiểu và trích xuất thông tin thay vì phải nhập từng ô." example="Áo dành cho giáo viên mầm non mặc ngày tựu trường, phong cách vui nhộn..." />
                   </label>
-                  <MultiSelectDropdown defaultOptions={audienceList} selected={targetAudience} onChange={setTargetAudience} placeholder="Select Target Audience..." />
-                  <SelectedPills selected={targetAudience} onRemove={opt => setTargetAudience(targetAudience.filter(i => i !== opt))} />
+                  <textarea 
+                    className="w-full min-h-[120px] rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-3 border border-slate-200/50 dark:border-white/5 text-sm font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400 custom-scrollbar resize-y" 
+                    value={customerContext} 
+                    onChange={e => setCustomerContext(e.target.value)} 
+                    placeholder="Paste raw text describing the target audience, situation, or value here... AI will extract them automatically." 
+                  />
                 </div>
 
                 {/* Core Emotion & Tone */}
@@ -327,26 +239,6 @@ export default function Ver20Tool() {
                     </label>
                     <div className="w-full"><CustomSelect value={tone} onChange={setTone} options={toneOptions} /></div>
                   </div>
-                </div>
-
-                {/* Situation */}
-                <div>
-                  <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
-                    Situation / Occasion
-                    <Tooltip title="Situation / Occasion" desc="Chọn hoàn cảnh sử dụng hoặc dịp tặng quà để chốt sale." example="Birthdays, Office" />
-                  </label>
-                  <MultiSelectDropdown defaultOptions={situationList} selected={situation} onChange={setSituation} placeholder="Select Situation/Occasion..." />
-                  <SelectedPills selected={situation} onRemove={opt => setSituation(situation.filter(i => i !== opt))} />
-                </div>
-
-                {/* Value Proposition */}
-                <div>
-                  <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
-                    Value Proposition / Benefit
-                    <Tooltip title="Value Proposition" desc="Giá trị độc nhất hoặc lợi ích tinh thần của thiết kế." example="Relatable Humor" />
-                  </label>
-                  <MultiSelectDropdown defaultOptions={valuePropList} selected={valueProp} onChange={setValueProp} placeholder="Select Value Proposition..." />
-                  <SelectedPills selected={valueProp} onRemove={opt => setValueProp(valueProp.filter(i => i !== opt))} />
                 </div>
               </div>
             </div>
@@ -411,7 +303,7 @@ export default function Ver20Tool() {
                 {results.length > 0 && (
                   <div className="flex items-center gap-3">
                     <CustomSelect value={filterIndex} onChange={setFilterIndex} options={[{label: 'Tất cả', value: 'all'}, ...results.map((_, idx) => ({label: `Kết quả #${results.length - idx}`, value: idx}))]} />
-                    <button onClick={() => {if(confirm('Xóa lịch sử?')){setResults([]); localStorage.removeItem('zazzle_v20.0');}}} className="w-8 h-8 flex items-center justify-center bg-white/80 dark:bg-[#3a3a3c] text-red-500 rounded-full font-bold border border-slate-200/50 dark:border-white/10 shadow-sm text-xs hover:bg-red-50 dark:hover:bg-red-900/20">✕</button>
+                    <button onClick={() => {if(confirm('Xóa lịch sử?')){setResults([]); localStorage.removeItem('zazzle_v21.0');}}} className="w-8 h-8 flex items-center justify-center bg-white/80 dark:bg-[#3a3a3c] text-red-500 rounded-full font-bold border border-slate-200/50 dark:border-white/10 shadow-sm text-xs hover:bg-red-50 dark:hover:bg-red-900/20">✕</button>
                   </div>
                 )}
               </div>
