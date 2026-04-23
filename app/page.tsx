@@ -53,12 +53,38 @@ const CustomSelect = ({ value, options, onChange, prefix }: { value: any, option
         <svg className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
       </div>
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 min-w-full w-max bg-white/95 dark:bg-[#2c2c2e]/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/10 rounded-xl shadow-lg z-50 py-1.5 overflow-hidden max-h-[250px] overflow-y-auto custom-scrollbar">
+        <div className="absolute top-full right-0 mt-1 min-w-full w-max bg-white/95 dark:bg-[#2c2c2e]/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/10 rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden max-h-[250px] overflow-y-auto custom-scrollbar">
           {options.map((opt) => (
             <div key={opt.value} className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${value === opt.value ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#3a3a3c]'}`} onClick={() => { onChange(opt.value); setIsOpen(false); }}>{opt.label}</div>
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+const MultiSelectPills = ({ options, selected, onChange }: { options: string[], selected: string[], onChange: (val: string[]) => void }) => {
+  const toggle = (opt: string) => {
+    if (selected.includes(opt)) onChange(selected.filter(i => i !== opt));
+    else onChange([...selected, opt]);
+  };
+  return (
+    <div className="flex flex-wrap gap-2 mt-2">
+      {options.map(opt => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => toggle(opt)}
+          className={`px-3 py-1.5 text-[10px] md:text-xs font-semibold rounded-lg transition-all border ${
+            selected.includes(opt)
+              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20'
+              : 'bg-white/50 dark:bg-[#1c1c1e]/50 border-slate-200/50 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#2c2c2e]'
+          }`}
+        >
+          {selected.includes(opt) && <span className="mr-1.5">✓</span>}
+          {opt}
+        </button>
+      ))}
     </div>
   );
 };
@@ -71,17 +97,44 @@ const CopyBtn = ({ text }: { text: string }) => {
   );
 };
 
+/* --- DATA PRESETS --- */
+const audienceList = ["Gen Z", "Millennials", "Proud Moms/Dads", "Grandparents", "Teachers/Nurses", "Pet Owners", "Introverts", "Couples/Newlyweds", "Office Workers", "Best Friends"];
+const situationList = ["Birthdays", "Christmas/Holidays", "Mother's/Father's Day", "Back to School", "Weddings/Bridal", "Work/Office", "Everyday Lifestyle", "Anniversary"];
+const valuePropList = ["Relatable Humor", "Motivational", "Thoughtful Keepsake", "Vintage/Retro", "Minimalist Chic", "Personalized Feel", "Sarcastic Icebreaker"];
+
+const emotionOptions = [
+  { label: 'Nostalgic (Hoài niệm)', value: 'Nostalgic' },
+  { label: 'Sarcastic Humor (Mỉa mai)', value: 'Sarcastic Humor' },
+  { label: 'Inspirational (Truyền cảm hứng)', value: 'Inspirational' },
+  { label: 'Professional (Chuyên nghiệp)', value: 'Professional' },
+  { label: 'Heartwarming (Ấm áp)', value: 'Heartwarming' },
+  { label: 'Cute & Kawaii (Dễ thương)', value: 'Cute & Kawaii' },
+  { label: 'Edgy / Rebellious (Cá tính, Nổi loạn)', value: 'Edgy / Rebellious' },
+  { label: 'Peaceful / Zen (Thanh bình)', value: 'Peaceful / Zen' }
+];
+
+const toneOptions = [
+  { label: 'Storytelling (Kể chuyện)', value: 'Storytelling' },
+  { label: 'Witty & Sharp (Sắc sảo)', value: 'Witty & Sharp' },
+  { label: 'Whimsical & Dreamy (Bay bổng)', value: 'Whimsical & Dreamy' },
+  { label: 'Bold & Direct (Trực tiếp)', value: 'Bold & Direct' },
+  { label: 'Poetic & Soft (Mềm mại, Thơ mộng)', value: 'Poetic & Soft' },
+  { label: 'Sassy & Playful (Nhí nhảnh, Đanh đá)', value: 'Sassy & Playful' },
+  { label: 'Formal & Elegant (Trang trọng)', value: 'Formal & Elegant' }
+];
+
+
 export default function Ver20Tool() {
   const [isDark, setIsDark] = useState(false);
   const [qty, setQty] = useState(1);
   
   // General & Structured Insight States
   const [textDesign, setTextDesign] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
+  const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [coreEmotion, setCoreEmotion] = useState('Nostalgic');
-  const [situation, setSituation] = useState('');
+  const [situation, setSituation] = useState<string[]>([]);
   const [tone, setTone] = useState('Storytelling');
-  const [valueProp, setValueProp] = useState('');
+  const [valueProp, setValueProp] = useState<string[]>([]);
 
   // Market Data States
   const [amzCount, setAmzCount] = useState(1);
@@ -125,10 +178,17 @@ export default function Ver20Tool() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!textDesign) return setError('Vui lòng nhập Prefix Design.');
-    if (!targetAudience) return setError('Vui lòng nhập Target Audience.');
+    if (targetAudience.length === 0) return setError('Vui lòng chọn ít nhất 1 Target Audience.');
     setLoading(true); setError('');
     try {
-      const payload = { amazonItems: amzItems, etsyItems: etsyItems, textDesign, quantity: qty, targetAudience, coreEmotion, situation, tone, valueProp };
+      const payload = { 
+        amazonItems: amzItems, etsyItems: etsyItems, textDesign, quantity: qty, 
+        targetAudience: targetAudience.join(', '), 
+        coreEmotion, 
+        situation: situation.join(', '), 
+        tone, 
+        valueProp: valueProp.join(', ') 
+      };
       const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -143,27 +203,12 @@ export default function Ver20Tool() {
   const progress = () => {
     let p = 0;
     if (textDesign) p += 20;
-    if (targetAudience) p += 20;
-    if (situation || valueProp) p += 20;
+    if (targetAudience.length > 0) p += 20;
+    if (situation.length > 0 || valueProp.length > 0) p += 20;
     if (amzItems[0]?.title) p += 20;
     if (etsyItems[0]?.title) p += 20;
     return p;
   };
-
-  const emotionOptions = [
-    { label: 'Nostalgic (Hoài niệm)', value: 'Nostalgic' },
-    { label: 'Sarcastic Humor (Mỉa mai)', value: 'Sarcastic Humor' },
-    { label: 'Inspirational (Truyền cảm hứng)', value: 'Inspirational' },
-    { label: 'Professional (Chuyên nghiệp)', value: 'Professional' },
-    { label: 'Heartwarming (Ấm áp)', value: 'Heartwarming' }
-  ];
-
-  const toneOptions = [
-    { label: 'Storytelling (Kể chuyện)', value: 'Storytelling' },
-    { label: 'Witty & Sharp (Sắc sảo)', value: 'Witty & Sharp' },
-    { label: 'Whimsical & Dreamy (Bay bổng)', value: 'Whimsical & Dreamy' },
-    { label: 'Bold & Direct (Trực tiếp)', value: 'Bold & Direct' }
-  ];
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-[#f5f5f7] via-[#ebedf0] to-[#e2e4e8] dark:from-[#1c1c1e] dark:via-[#2c2c2e] dark:to-[#1c1c1e] transition-all duration-300 text-slate-900 dark:text-slate-100 pb-8">
@@ -188,51 +233,42 @@ export default function Ver20Tool() {
         <div className="flex flex-col xl:flex-row gap-5 items-start">
           
           {/* CỘT INPUT */}
-          <form onSubmit={submit} className="flex-1 w-full xl:w-[40%] flex flex-col gap-5">
+          <form onSubmit={submit} className="flex-1 w-full xl:w-[40%] flex flex-col gap-5 z-20">
             
             {/* 1. GENERAL & STRUCTURED INSIGHT */}
-            <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+            <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 rounded-l-2xl"></div>
               <div className="flex justify-between items-center mb-5 border-b border-slate-200/50 dark:border-slate-700 pb-4">
                 <h2 className="text-base font-bold pl-2">Structured Buyer Insight</h2>
                 <CustomSelect prefix="Output" value={qty} onChange={setQty} options={[1,2,3,4,5].map(n => ({label: `${n} Variants`, value: n}))} />
               </div>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Prefix Design */}
                 <div>
                   <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
                     Prefix Design <span className="text-red-500 ml-1">*</span>
-                    <Tooltip title="Prefix Design" desc="Từ khóa chính của thiết kế. AI sẽ đặt chính xác từ khóa này ở đầu Tiêu đề và Câu đầu tiên của Mô tả để tối ưu Google SEO (Front-loading)." example="Retro Cat Mama" />
+                    <Tooltip title="Prefix Design" desc="Từ khóa chính của thiết kế. Bắt buộc để tối ưu Google Meta (Front-loading)." example="Retro Cat Mama" />
                   </label>
                   <input type="text" className="w-full rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400" value={textDesign} onChange={e => setTextDesign(e.target.value)} placeholder="e.g. Vintage Cat Mama" />
                 </div>
                 
-                {/* Target Audience & Core Emotion */}
+                {/* Target Audience */}
+                <div>
+                  <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
+                    Target Audience <span className="text-red-500 ml-1">*</span>
+                    <Tooltip title="Target Audience" desc="Chọn nhiều nhóm khách hàng mục tiêu để tạo sự kết hợp ngách độc đáo." example="Gen Z + Introverts" />
+                  </label>
+                  <MultiSelectPills options={audienceList} selected={targetAudience} onChange={setTargetAudience} />
+                </div>
+
+                {/* Core Emotion & Tone */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
-                      Target Audience <span className="text-red-500 ml-1">*</span>
-                      <Tooltip title="Target Audience" desc="Khách hàng mục tiêu hoặc người nhận quà. Giúp AI xác định danh từ và đại từ xưng hô." example="Introverted nurses, Gen Z dog dads" />
-                    </label>
-                    <input type="text" className="w-full rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400" value={targetAudience} onChange={e => setTargetAudience(e.target.value)} placeholder="e.g. Sarcastic office workers" />
-                  </div>
                   <div>
                     <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
                       Core Emotion <span className="text-red-500 ml-1">*</span>
-                      <Tooltip title="Core Emotion" desc="Cảm xúc chủ đạo mà thiết kế muốn truyền tải. Quyết định hệ thống tính từ trong mô tả." example="Nostalgic, Sarcastic Humor" />
+                      <Tooltip title="Core Emotion" desc="Cảm xúc chủ đạo mà thiết kế muốn truyền tải." example="Sarcastic Humor" />
                     </label>
                     <div className="w-full"><CustomSelect value={coreEmotion} onChange={setCoreEmotion} options={emotionOptions} /></div>
-                  </div>
-                </div>
-
-                {/* Situation & Tone */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
-                      Situation / Occasion
-                      <Tooltip title="Situation / Occasion" desc="Hoàn cảnh sử dụng hoặc dịp tặng quà. Kích hoạt công cụ chốt sale trong tiềm thức người mua." example="Monday morning meetings, 50th birthday" />
-                    </label>
-                    <input type="text" className="w-full rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400" value={situation} onChange={e => setSituation(e.target.value)} placeholder="e.g. Secret Santa gift" />
                   </div>
                   <div>
                     <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
@@ -243,13 +279,22 @@ export default function Ver20Tool() {
                   </div>
                 </div>
 
+                {/* Situation */}
+                <div>
+                  <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
+                    Situation / Occasion
+                    <Tooltip title="Situation / Occasion" desc="Chọn hoàn cảnh sử dụng hoặc dịp tặng quà để chốt sale." example="Birthdays, Office" />
+                  </label>
+                  <MultiSelectPills options={situationList} selected={situation} onChange={setSituation} />
+                </div>
+
                 {/* Value Proposition */}
                 <div>
-                  <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                  <label className="flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 ml-1">
                     Value Proposition / Benefit
-                    <Tooltip title="Value Proposition / Benefit" desc="Giá trị độc nhất hoặc lợi ích tinh thần của thiết kế." example="Relatable introverted irony, Vintage aesthetic" />
+                    <Tooltip title="Value Proposition" desc="Giá trị độc nhất hoặc lợi ích tinh thần của thiết kế." example="Relatable Humor" />
                   </label>
-                  <input type="text" className="w-full rounded-xl bg-white/70 dark:bg-[#1c1c1e]/70 p-2.5 border border-slate-200/50 dark:border-white/5 text-sm font-semibold outline-none focus:ring-1 focus:ring-blue-400 transition-colors placeholder-slate-400" value={valueProp} onChange={e => setValueProp(e.target.value)} placeholder="e.g. Bring a smile to the workspace" />
+                  <MultiSelectPills options={valuePropList} selected={valueProp} onChange={setValueProp} />
                 </div>
               </div>
             </div>
@@ -257,12 +302,12 @@ export default function Ver20Tool() {
             {/* 2 & 3. MARKET DATA */}
             <div className="space-y-5">
               {/* AMAZON */}
-              <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-500"></div>
+              <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative z-10">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-500 rounded-l-2xl"></div>
                 <div className="flex justify-between items-center mb-4 pl-2">
                   <h2 className="text-base font-bold flex items-center">
                     Amazon Data
-                    <Tooltip title="Amazon Market Data" desc="Dữ liệu từ đối thủ trên Amazon. AI sẽ học cách họ viết lợi ích thương mại để tối ưu hóa Mô tả." example="Title: Funny Cat Shirt... Desc: Great gift for..." />
+                    <Tooltip title="Amazon Market Data" desc="Dữ liệu từ đối thủ trên Amazon." example="Title: Funny Cat Shirt... Desc: Great gift for..." />
                   </h2>
                   <CustomSelect value={amzCount} onChange={handleAmzCount} options={[1,2,3,4,5,6,7,8,9,10].map(n => ({label: `${n} Items`, value: n}))} />
                 </div>
@@ -278,12 +323,12 @@ export default function Ver20Tool() {
               </div>
 
               {/* ETSY */}
-              <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-[#F16521]"></div>
+              <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 relative z-0">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-[#F16521] rounded-l-2xl"></div>
                 <div className="flex justify-between items-center mb-4 pl-2">
                   <h2 className="text-base font-bold flex items-center">
                     Etsy Data
-                    <Tooltip title="Etsy Market Data" desc="Dữ liệu thị trường từ Etsy. Cung cấp vốn từ vựng (LSI Keywords) tự nhiên và các Tags ngách đang có nhu cầu tìm kiếm cao." example="Title: Retro Teacher Mug... Tags: teacher gift, retro vibe..." />
+                    <Tooltip title="Etsy Market Data" desc="Dữ liệu thị trường từ Etsy." example="Title: Retro Teacher Mug... Tags: teacher gift, retro vibe..." />
                   </h2>
                   <CustomSelect value={etsyCount} onChange={handleEtsyCount} options={[1,2,3,4,5,6,7,8,9,10].map(n => ({label: `${n} Items`, value: n}))} />
                 </div>
@@ -307,9 +352,9 @@ export default function Ver20Tool() {
 
           {/* CỘT KẾT QUẢ */}
           <div className="flex-1 w-full xl:w-[60%] xl:sticky xl:top-6 flex flex-col xl:h-[calc(100vh-48px)]">
-            <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 h-full flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
-              <div className="flex justify-between items-center mb-5 pb-4 border-b border-slate-200/50 dark:border-slate-700 pl-2">
+            <div className="bg-white/50 dark:bg-[#2c2c2e]/60 backdrop-blur-xl rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/50 dark:border-white/10 h-full flex flex-col relative">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 rounded-l-2xl"></div>
+              <div className="flex justify-between items-center mb-5 pb-4 border-b border-slate-200/50 dark:border-slate-700 pl-2 z-10">
                 <h2 className="text-lg font-bold flex items-center gap-2"><AppleIcon /> Kết quả đầu ra</h2>
                 {results.length > 0 && (
                   <div className="flex items-center gap-3">
